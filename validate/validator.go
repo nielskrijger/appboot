@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -31,7 +32,7 @@ var (
 	// is used with an unsupported variable type
 	ErrUnsupported = errors.New("unsupported type")
 
-	tagCache   = map[string][]Tag{}
+	tagCache   = sync.Map{}
 	sepPattern = regexp.MustCompile(`((?:^|[^\\])(?:\\\\)*),`)
 )
 
@@ -378,8 +379,8 @@ type Tag struct {
 // mustParseTags parses all individual tags found within a tag value.
 // Caches the result. Panics if an unknown tag was found.
 func (mv *Validator) mustParseTags(t string) []Tag {
-	if val, ok := tagCache[t]; ok {
-		return val
+	if val, ok := tagCache.Load(t); ok {
+		return val.([]Tag)
 	}
 	tl := splitUnescapedComma(t)
 	tags := make([]Tag, 0, len(tl))
@@ -405,8 +406,8 @@ func (mv *Validator) mustParseTags(t string) []Tag {
 			tags = append(tags, tg)
 		}
 	}
-	tagCache[t] = tags
-	return tagCache[t]
+	tagCache.Store(t, tags)
+	return tags
 }
 
 func splitUnescapedComma(str string) []string {

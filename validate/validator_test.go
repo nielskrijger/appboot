@@ -35,7 +35,7 @@ type requiredStruct struct {
 }
 
 func TestStruct_Required(t *testing.T) {
-	errs := validate.Struct(&requiredStruct{}).(validate.FieldErrors)
+	t.Parallel()
 
 	tests := []string{
 		"String",
@@ -48,6 +48,7 @@ func TestStruct_Required(t *testing.T) {
 		"Chan",
 	}
 
+	errs := validate.Struct(&requiredStruct{}).(validate.FieldErrors)
 	assert.Len(t, errs, len(tests))
 	for _, err := range errs {
 		assert.Contains(t, tests, err.Field)
@@ -60,6 +61,7 @@ type simpleStruct struct {
 }
 
 func TestStruct_SingleError(t *testing.T) {
+	t.Parallel()
 	v := validate.NewValidator(validate.WithStandardRules())
 
 	errs := v.Struct(&simpleStruct{})
@@ -82,6 +84,7 @@ type complexStruct struct {
 }
 
 func TestStruct_MultipleErrors(t *testing.T) {
+	t.Parallel()
 	v := validate.NewValidator(validate.WithFullErrorPath(), validate.WithStandardRules())
 
 	errs := v.Struct(&complexStruct{})
@@ -91,6 +94,7 @@ func TestStruct_MultipleErrors(t *testing.T) {
 }
 
 func TestStruct_WithoutFullErrorPath(t *testing.T) {
+	t.Parallel()
 	errs := validate.Struct(&complexStruct{})
 
 	assert.Len(t, errs, 5)
@@ -98,6 +102,7 @@ func TestStruct_WithoutFullErrorPath(t *testing.T) {
 }
 
 func TestField_Required(t *testing.T) {
+	t.Parallel()
 	err := validate.Field("", "Name", "required").(validate.FieldError)
 
 	assert.Equal(t, "field is invalid: Name", err.Error())
@@ -106,13 +111,14 @@ func TestField_Required(t *testing.T) {
 }
 
 func TestField_Optional(t *testing.T) {
+	t.Parallel()
 	err := validate.Field("", "Name", "optional,lte=3")
 
 	assert.Nil(t, err)
 }
 
 func (u *fakeUser) Validate() error {
-	return validate.Fields(
+	return validate.Fields( // nolint:wrapcheck
 		validate.Field(u.Name, "Name", "required,gte=3,lte=25"),
 		validate.Field(u.Gender, "Gender", "gender"),
 	)
@@ -124,6 +130,7 @@ var fakeValidUser = &fakeUser{
 }
 
 func TestFields_Valid(t *testing.T) {
+	t.Parallel()
 	assert.True(t, fakeValidUser.Validate() == nil)
 }
 
@@ -133,29 +140,32 @@ var fakeInvalidUser = &fakeUser{
 }
 
 func TestFields_Invalid(t *testing.T) {
+	t.Parallel()
 	errs := fakeInvalidUser.Validate().(validate.FieldErrors)
 
 	assert.Len(t, errs, 2)
 }
 
-var gteTests = []struct {
-	test  interface{}
-	error string
-}{
-	{"12", "Value must be at least 3 characters long"},
-	{"123", ""},
-	{2, "Value must be at least 3"},
-	{3, ""},
-	{uint(2), "Value must be at least 3"},
-	{uint(3), ""},
-	{2.999999, "Value must be at least 3"},
-	{3.0, ""},
-	{[]string{"a", "b"}, "Value must contain at least 3 elements"},
-	{[]string{"a", "b", "c"}, ""},
-}
-
 func TestGTE(t *testing.T) {
-	for _, tt := range gteTests {
+	t.Parallel()
+
+	var tests = []struct {
+		test  interface{}
+		error string
+	}{
+		{"12", "Value must be at least 3 characters long"},
+		{"123", ""},
+		{2, "Value must be at least 3"},
+		{3, ""},
+		{uint(2), "Value must be at least 3"},
+		{uint(3), ""},
+		{2.999999, "Value must be at least 3"},
+		{3.0, ""},
+		{[]string{"a", "b"}, "Value must contain at least 3 elements"},
+		{[]string{"a", "b", "c"}, ""},
+	}
+
+	for _, tt := range tests {
 		err := validate.Field(tt.test, "Value", "gte=3")
 		if tt.error == "" {
 			assert.Nil(t, err, fmt.Sprintf("failed validation for %+v", tt.test))
@@ -166,24 +176,27 @@ func TestGTE(t *testing.T) {
 	}
 }
 
-var lteTests = []struct {
-	test  interface{}
-	error string
-}{
-	{"12", ""},
-	{"123", "Value must be at most 2 characters long"},
-	{2, ""},
-	{3, "Value maximum value is 2"},
-	{uint(2), ""},
-	{uint(3), "Value maximum value is 2"},
-	{2.0, ""},
-	{2.000001, "Value maximum value is 2"},
-	{[]string{"a", "b"}, ""},
-	{[]string{"a", "b", "c"}, "Value may not contain more than 2 elements"},
-}
 
 func TestLTE(t *testing.T) {
-	for _, tt := range lteTests {
+	t.Parallel()
+
+	var tests = []struct {
+		test  interface{}
+		error string
+	}{
+		{"12", ""},
+		{"123", "Value must be at most 2 characters long"},
+		{2, ""},
+		{3, "Value maximum value is 2"},
+		{uint(2), ""},
+		{uint(3), "Value maximum value is 2"},
+		{2.0, ""},
+		{2.000001, "Value maximum value is 2"},
+		{[]string{"a", "b"}, ""},
+		{[]string{"a", "b", "c"}, "Value may not contain more than 2 elements"},
+	}
+
+	for _, tt := range tests {
 		err := validate.Field(tt.test, "Value", "lte=2")
 		if tt.error == "" {
 			assert.Nil(t, err, fmt.Sprintf("failed validation for %+v", tt.test))
@@ -242,155 +255,157 @@ var (
 	now          = time.Now().UTC()
 )
 
-var testTags = []struct {
-	user   interface{}
-	errors map[string]string
-}{
-	// date
-	{&fakeUser{Birthdate: nil}, nil},
-	{&fakeUser{Birthdate: &dateZero}, map[string]string{
-		"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
-	}},
-	{&fakeUser{Birthdate: &dateWithTime}, map[string]string{
-		"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
-	}},
-	{&fakeUser{BirthdateString: ""}, nil},
-	{&fakeUser{BirthdateString: "2010-01-02"}, nil},
-	{&fakeUser{BirthdateString: "01-02-2006"}, map[string]string{
-		"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
-	}},
-	{&fakeUser{BirthdateString: "2010-01-02T23:33Z"}, map[string]string{
-		"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
-	}},
-
-	// mindate
-	{&fakeUser{Birthdate: &dateLongAgo}, map[string]string{
-		"Birthdate": "Birthdate minimum date is 1900-01-01",
-	}},
-	{&fakeUser{Future: &yesterday}, map[string]string{
-		"Future": "Future minimum date is " + now.Format("2006-01-02"),
-	}},
-	{&fakeUser{BirthdateString: "1899-12-31"}, map[string]string{
-		"BirthdateString": "BirthdateString minimum date is 1900-01-01",
-	}},
-
-	// maxdate
-	{&fakeUser{Birthdate: &date2011}, map[string]string{
-		"Birthdate": "Birthdate maximum date is 2010-12-31",
-	}},
-
-	// gender
-	{&fakeUser{Gender: ""}, nil},
-	{&fakeUser{Gender: "male"}, nil},
-	{&fakeUser{Gender: "m"}, map[string]string{
-		"Gender": "Gender must be either male, female, genderqueer",
-	}},
-	{&fakeUser{Past: &tomorrow}, map[string]string{
-		"Past": "Past maximum date is " + now.Format("2006-01-02"),
-	}},
-
-	// az_
-	{&fakeUser{Az: ""}, nil},
-	{&fakeUser{Az: "t_est_"}, nil},
-	{&fakeUser{Az: "_test"}, map[string]string{
-		"Az": "Az must contain a-z, _ and not start with a _",
-	}},
-	{&fakeUser{Az: "te0st"}, map[string]string{
-		"Az": "Az must contain a-z, _ and not start with a _",
-	}},
-	{&fakeUser{Azs: []string{"test", "test__"}}, nil},
-	{&fakeUser{Azs: []string{"Test", "test0"}}, map[string]string{
-		"Azs": "Azs must contain a-z, _ and not start with a _",
-	}},
-
-	// aZ09_
-	{&fakeUser{AZ09: ""}, nil},
-	{&fakeUser{AZ09: "Test09__"}, nil},
-	{&fakeUser{AZ09: "_test"}, map[string]string{
-		"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
-	}},
-	{&fakeUser{AZ09: "te st"}, map[string]string{
-		"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
-	}},
-	{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__"}}, nil},
-	{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__", "_test"}}, map[string]string{
-		"AZ09s": "AZ09s must contain 0-9, A-Z, _ and not start with a _",
-	}},
-
-	// name
-	{&fakeUser{Name: ""}, nil},
-	{&fakeUser{Name: "ŵƼǗǨȐ ,.'- ȣΏШア艮"}, nil},
-	{&fakeUser{Name: " spacebegin"}, map[string]string{
-		"Name": "Name must contain unicode letters -,.' and not start or end with a space",
-	}},
-	{&fakeUser{Name: "no9"}, map[string]string{
-		"Name": "Name must contain unicode letters -,.' and not start or end with a space",
-	}},
-	{&fakeUser{Names: []string{"Doe John", "John Doe"}}, nil},
-	{&fakeUser{Names: []string{"hello", "09", "hi"}}, map[string]string{
-		"Names": "Names must contain unicode letters -,.' and not start or end with a space",
-	}},
-
-	// zoneinfo
-	{&fakeUser{Zoneinfo: ""}, nil},
-	{&fakeUser{Zoneinfo: "Europe/Amsterdam"}, nil},
-	{&fakeUser{Zoneinfo: "Unknown/Europe"}, map[string]string{
-		"Zoneinfo": "Zoneinfo is not a valid zoneinfo string (example: 'Europe/Amsterdam')",
-	}},
-
-	// locale
-	{&fakeUser{Locale: ""}, nil},
-	{&fakeUser{Locale: "en und-u-cu-USD zh_Hant_HK_u_co_pinyi"}, nil},
-	{&fakeUser{Locale: "en en-u"}, map[string]string{
-		"Locale": "Locale must contain BCP47 language tags separated by spaces",
-	}},
-
-	// url
-	{&fakeUser{URL: ""}, nil},
-	{&fakeUser{URL: "https://www.cnn.com/test?test=bliep#hashtag=123"}, nil},
-	{&fakeUser{URL: "http://foobar.com/t$-_.+!*\\'(),"}, nil},
-	{&fakeUser{URL: "//www.cnn.com/test?test=bliep#hashtag=123"}, map[string]string{
-		"URL": "URL is not a valid url",
-	}},
-
-	// email
-	{&fakeUser{PrimaryEmail: &fakeEmail{Email: ""}}, nil},
-	{&fakeUser{PrimaryEmail: &fakeEmail{Email: "Dörte@Sörensen.example.com"}}, nil},
-	{&fakeUser{PrimaryEmail: &fakeEmail{Email: "not valid"}}, map[string]string{
-		"Email": "Email is not a valid email",
-	}},
-
-	// resourcename
-	{&fakeUser{Subject: ""}, nil},
-	{&fakeUser{Subject: "mtx:account:test/1-2"}, nil},
-	{&fakeUser{Subject: "mtx:accounT"}, map[string]string{
-		"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-	}},
-	{&fakeUser{Subject: "mtx:"}, map[string]string{
-		"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-	}},
-	{&fakeUser{Subject: "mtx:test*"}, map[string]string{
-		"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-	}},
-	{&fakeUser{Subjects: []string{"", "mtx:account:test-1234", "mtx:test:0-9"}}, nil},
-	{&fakeUser{Subjects: []string{"mtx:test*", "mtx:account:test-1234", "mtx:test:0-9"}}, map[string]string{
-		"Subjects": "Subjects must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-	}},
-
-	// resourcenamepattern
-	{&fakeUser{Resource: ""}, nil},
-	{&fakeUser{Resource: "mtx:*:b12*:c/*d:**"}, nil},
-	{&fakeUser{Resource: "mtx:accounT"}, map[string]string{
-		"Resource": "Resource must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
-	}},
-	{&fakeUser{Resources: []string{"", "mtx:account:*:123"}}, nil},
-	{&fakeUser{Resources: []string{"", "mtx:account:*:123", "mtx:no_underscore"}}, map[string]string{
-		"Resources": "Resources must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
-	}},
-}
-
 func TestRules(t *testing.T) {
-	for _, tt := range testTags {
+	t.Parallel()
+
+	var tests = []struct {
+		user   interface{}
+		errors map[string]string
+	}{
+		// date
+		{&fakeUser{Birthdate: nil}, nil},
+		{&fakeUser{Birthdate: &dateZero}, map[string]string{
+			"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
+		}},
+		{&fakeUser{Birthdate: &dateWithTime}, map[string]string{
+			"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
+		}},
+		{&fakeUser{BirthdateString: ""}, nil},
+		{&fakeUser{BirthdateString: "2010-01-02"}, nil},
+		{&fakeUser{BirthdateString: "01-02-2006"}, map[string]string{
+			"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
+		}},
+		{&fakeUser{BirthdateString: "2010-01-02T23:33Z"}, map[string]string{
+			"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
+		}},
+
+		// mindate
+		{&fakeUser{Birthdate: &dateLongAgo}, map[string]string{
+			"Birthdate": "Birthdate minimum date is 1900-01-01",
+		}},
+		{&fakeUser{Future: &yesterday}, map[string]string{
+			"Future": "Future minimum date is " + now.Format("2006-01-02"),
+		}},
+		{&fakeUser{BirthdateString: "1899-12-31"}, map[string]string{
+			"BirthdateString": "BirthdateString minimum date is 1900-01-01",
+		}},
+
+		// maxdate
+		{&fakeUser{Birthdate: &date2011}, map[string]string{
+			"Birthdate": "Birthdate maximum date is 2010-12-31",
+		}},
+
+		// gender
+		{&fakeUser{Gender: ""}, nil},
+		{&fakeUser{Gender: "male"}, nil},
+		{&fakeUser{Gender: "m"}, map[string]string{
+			"Gender": "Gender must be either male, female, genderqueer",
+		}},
+		{&fakeUser{Past: &tomorrow}, map[string]string{
+			"Past": "Past maximum date is " + now.Format("2006-01-02"),
+		}},
+
+		// az_
+		{&fakeUser{Az: ""}, nil},
+		{&fakeUser{Az: "t_est_"}, nil},
+		{&fakeUser{Az: "_test"}, map[string]string{
+			"Az": "Az must contain a-z, _ and not start with a _",
+		}},
+		{&fakeUser{Az: "te0st"}, map[string]string{
+			"Az": "Az must contain a-z, _ and not start with a _",
+		}},
+		{&fakeUser{Azs: []string{"test", "test__"}}, nil},
+		{&fakeUser{Azs: []string{"Test", "test0"}}, map[string]string{
+			"Azs": "Azs must contain a-z, _ and not start with a _",
+		}},
+
+		// aZ09_
+		{&fakeUser{AZ09: ""}, nil},
+		{&fakeUser{AZ09: "Test09__"}, nil},
+		{&fakeUser{AZ09: "_test"}, map[string]string{
+			"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
+		}},
+		{&fakeUser{AZ09: "te st"}, map[string]string{
+			"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
+		}},
+		{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__"}}, nil},
+		{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__", "_test"}}, map[string]string{
+			"AZ09s": "AZ09s must contain 0-9, A-Z, _ and not start with a _",
+		}},
+
+		// name
+		{&fakeUser{Name: ""}, nil},
+		{&fakeUser{Name: "ŵƼǗǨȐ ,.'- ȣΏШア艮"}, nil},
+		{&fakeUser{Name: " spacebegin"}, map[string]string{
+			"Name": "Name must contain unicode letters -,.' and not start or end with a space",
+		}},
+		{&fakeUser{Name: "no9"}, map[string]string{
+			"Name": "Name must contain unicode letters -,.' and not start or end with a space",
+		}},
+		{&fakeUser{Names: []string{"Doe John", "John Doe"}}, nil},
+		{&fakeUser{Names: []string{"hello", "09", "hi"}}, map[string]string{
+			"Names": "Names must contain unicode letters -,.' and not start or end with a space",
+		}},
+
+		// zoneinfo
+		{&fakeUser{Zoneinfo: ""}, nil},
+		{&fakeUser{Zoneinfo: "Europe/Amsterdam"}, nil},
+		{&fakeUser{Zoneinfo: "Unknown/Europe"}, map[string]string{
+			"Zoneinfo": "Zoneinfo is not a valid zoneinfo string (example: 'Europe/Amsterdam')",
+		}},
+
+		// locale
+		{&fakeUser{Locale: ""}, nil},
+		{&fakeUser{Locale: "en und-u-cu-USD zh_Hant_HK_u_co_pinyi"}, nil},
+		{&fakeUser{Locale: "en en-u"}, map[string]string{
+			"Locale": "Locale must contain BCP47 language tags separated by spaces",
+		}},
+
+		// url
+		{&fakeUser{URL: ""}, nil},
+		{&fakeUser{URL: "https://www.cnn.com/test?test=bliep#hashtag=123"}, nil},
+		{&fakeUser{URL: "http://foobar.com/t$-_.+!*\\'(),"}, nil},
+		{&fakeUser{URL: "//www.cnn.com/test?test=bliep#hashtag=123"}, map[string]string{
+			"URL": "URL is not a valid url",
+		}},
+
+		// email
+		{&fakeUser{PrimaryEmail: &fakeEmail{Email: ""}}, nil},
+		{&fakeUser{PrimaryEmail: &fakeEmail{Email: "Dörte@Sörensen.example.com"}}, nil},
+		{&fakeUser{PrimaryEmail: &fakeEmail{Email: "not valid"}}, map[string]string{
+			"Email": "Email is not a valid email",
+		}},
+
+		// resourcename
+		{&fakeUser{Subject: ""}, nil},
+		{&fakeUser{Subject: "mtx:account:test/1-2"}, nil},
+		{&fakeUser{Subject: "mtx:accounT"}, map[string]string{
+			"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+		}},
+		{&fakeUser{Subject: "mtx:"}, map[string]string{
+			"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+		}},
+		{&fakeUser{Subject: "mtx:test*"}, map[string]string{
+			"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+		}},
+		{&fakeUser{Subjects: []string{"", "mtx:account:test-1234", "mtx:test:0-9"}}, nil},
+		{&fakeUser{Subjects: []string{"mtx:test*", "mtx:account:test-1234", "mtx:test:0-9"}}, map[string]string{
+			"Subjects": "Subjects must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+		}},
+
+		// resourcenamepattern
+		{&fakeUser{Resource: ""}, nil},
+		{&fakeUser{Resource: "mtx:*:b12*:c/*d:**"}, nil},
+		{&fakeUser{Resource: "mtx:accounT"}, map[string]string{
+			"Resource": "Resource must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
+		}},
+		{&fakeUser{Resources: []string{"", "mtx:account:*:123"}}, nil},
+		{&fakeUser{Resources: []string{"", "mtx:account:*:123", "mtx:no_underscore"}}, map[string]string{
+			"Resources": "Resources must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
+		}},
+	}
+
+	for _, tt := range tests {
 		errs := validate.Struct(tt.user)
 		if tt.errors == nil {
 			assert.Nil(t, errs, fmt.Sprintf("failed validation for %+v", tt.user))
@@ -413,29 +428,31 @@ func findError(errs validate.FieldErrors, field string) validate.FieldError {
 	panic(fmt.Sprintf("field %q not found", field))
 }
 
-var testAliases = []struct {
-	value interface{}
-	tag   string
-	field string
-	error string
-}{
-	// username
-	{"Hello123_", "username", "Username", ""},
-	{"te", "username", "Username", "Username must be at least 4 characters long"},
-	{strings.Repeat("a", 21), "username", "Username", "Username must be at most 20 characters long"},
-	{"_rudolph", "username", "Username", "Username must contain 0-9, A-Z, _ and not start with a _"},
-
-	// birthdate
-	{"", "birthdate", "Birthdate", ""},
-	{"2010-01-02", "birthdate", "Birthdate", ""},
-	{tomorrow.Format("2006-01-02"), "birthdate", "Birthdate", "Birthdate maximum date is " + now.Format("2006-01-02")},
-	{"1899-12-31", "birthdate", "Birthdate", "Birthdate minimum date is 1900-01-01"},
-	{"1899-12-31T12:30", "birthdate", "Birthdate", "Birthdate is not a valid date (YYYY-MM-DD)"},
-	{validate.InvalidTime, "birthdate", "Birthdate", "Birthdate is not a valid date (YYYY-MM-DD)"},
-}
-
 func TestAliases(t *testing.T) {
-	for _, tt := range testAliases {
+	t.Parallel()
+
+	var tests = []struct {
+		value interface{}
+		tag   string
+		field string
+		error string
+	}{
+		// username
+		{"Hello123_", "username", "Username", ""},
+		{"te", "username", "Username", "Username must be at least 4 characters long"},
+		{strings.Repeat("a", 21), "username", "Username", "Username must be at most 20 characters long"},
+		{"_rudolph", "username", "Username", "Username must contain 0-9, A-Z, _ and not start with a _"},
+
+		// birthdate
+		{"", "birthdate", "Birthdate", ""},
+		{"2010-01-02", "birthdate", "Birthdate", ""},
+		{tomorrow.Format("2006-01-02"), "birthdate", "Birthdate", "Birthdate maximum date is " + now.Format("2006-01-02")},
+		{"1899-12-31", "birthdate", "Birthdate", "Birthdate minimum date is 1900-01-01"},
+		{"1899-12-31T12:30", "birthdate", "Birthdate", "Birthdate is not a valid date (YYYY-MM-DD)"},
+		{validate.InvalidTime, "birthdate", "Birthdate", "Birthdate is not a valid date (YYYY-MM-DD)"},
+	}
+
+	for _, tt := range tests {
 		err := validate.Field(tt.value, tt.field, tt.tag)
 		if tt.error == "" {
 			assert.Nil(t, err)
@@ -445,25 +462,27 @@ func TestAliases(t *testing.T) {
 	}
 }
 
-var panicTests = []struct {
-	value interface{}
-	tags  string
-	error string
-}{
-	{false, "isodate", "invalid type for isodate tag"},
-	{true, "mindate=2011-01-02", "invalid type for mindate tag"},
-	{false, "maxdate=2011-01-02", "invalid type for maxdate tag"},
-	{false, "name", "invalid type for name tag"},
-	{false, "", "unknown validate tag \"\""},
-	{false, "unknown", "unknown validate tag \"unknown\""},
-	{false, "zoneinfo", "invalid type for zoneinfo tag"},
-	{false, "locale", "invalid type for locale tag"},
-	{false, "aZ09_", "invalid type for aZ09_ tag"},
-	{false, "gender", "invalid type for gender tag"},
-}
-
 func TestRules_InvalidTypes(t *testing.T) {
-	for _, tt := range panicTests {
+	t.Parallel()
+
+	var tests = []struct {
+		value interface{}
+		tags  string
+		error string
+	}{
+		{false, "isodate", "invalid type for isodate tag"},
+		{true, "mindate=2011-01-02", "invalid type for mindate tag"},
+		{false, "maxdate=2011-01-02", "invalid type for maxdate tag"},
+		{false, "name", "invalid type for name tag"},
+		{false, "", "unknown validate tag \"\""},
+		{false, "unknown", "unknown validate tag \"unknown\""},
+		{false, "zoneinfo", "invalid type for zoneinfo tag"},
+		{false, "locale", "invalid type for locale tag"},
+		{false, "aZ09_", "invalid type for aZ09_ tag"},
+		{false, "gender", "invalid type for gender tag"},
+	}
+
+	for _, tt := range tests {
 		assert.PanicsWithValue(t, tt.error, func() {
 			_ = validate.Field(tt.value, "TEST", tt.tags)
 		})
