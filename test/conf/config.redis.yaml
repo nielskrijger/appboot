@@ -1,0 +1,4 @@
+redis:
+  url: 0.0.0.0:6379
+  password: secret
+  db: 3

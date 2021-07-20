@@ -1,0 +1,4 @@
+postgres:
+  dsn: postgres://postgres:secret@1.2.3.4:5431/utils?sslmode=disable
+  connectTimeout: 1
+  connectRetryDuration: 1ms

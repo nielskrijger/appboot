@@ -1,0 +1,6 @@
+redis:
+  url: 1.2.3.4:6379
+  db:                   3
+  poolSize:             100
+  dialTimeout:          100ms
+  connectRetryDuration: 1ms

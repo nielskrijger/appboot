@@ -1,0 +1,3 @@
+vars:
+  filename: config.yaml
+  foo: bar

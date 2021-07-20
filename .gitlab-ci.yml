@@ -1,0 +1,36 @@
+image:
+  name: docker/compose:1.24.0
+  entrypoint: [""]
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - validate
+
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_DRIVER: overlay2
+  CONTAINER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+
+before_script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  - docker pull $CONTAINER_IMAGE || true
+
+build:
+  stage: build
+  script:
+    - docker build --cache-from $CONTAINER_IMAGE -t $CONTAINER_IMAGE .
+    - docker push $CONTAINER_IMAGE
+
+lint:
+  stage: validate
+  script:
+    - docker run $CONTAINER_IMAGE make lint
+
+tests:
+  stage: validate
+  script:
+    - docker-compose up -d
+    - docker run --network host $CONTAINER_IMAGE make integration

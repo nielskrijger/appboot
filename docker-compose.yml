@@ -1,0 +1,26 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:11
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=utils
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  pubsub:
+    image: knarz/pubsub-emulator
+    ports:
+      - "8085:8085"
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    command: >
+      --requirepass secret
+
+volumes:
+  pgdata:
