@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"github.com/rs/zerolog"
 	"net/url"
 	"strconv"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/go-pg/pg"
 	"github.com/nielskrijger/goboot/context"
 	"github.com/nielskrijger/goboot/migrate"
+	"github.com/rs/zerolog"
 )
 
 const (

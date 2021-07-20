@@ -2,11 +2,11 @@ package validate_test
 
 import (
 	"fmt"
-	"github.com/nielskrijger/goboot/validate"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/nielskrijger/goboot/validate"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -149,7 +149,7 @@ func TestFields_Invalid(t *testing.T) {
 func TestGTE(t *testing.T) {
 	t.Parallel()
 
-	var tests = []struct {
+	tests := []struct {
 		test  interface{}
 		error string
 	}{
@@ -176,11 +176,10 @@ func TestGTE(t *testing.T) {
 	}
 }
 
-
 func TestLTE(t *testing.T) {
 	t.Parallel()
 
-	var tests = []struct {
+	tests := []struct {
 		test  interface{}
 		error string
 	}{
@@ -258,7 +257,7 @@ var (
 func TestRules(t *testing.T) {
 	t.Parallel()
 
-	var tests = []struct {
+	tests := []struct {
 		user   interface{}
 		errors map[string]string
 	}{
@@ -431,7 +430,7 @@ func findError(errs validate.FieldErrors, field string) validate.FieldError {
 func TestAliases(t *testing.T) {
 	t.Parallel()
 
-	var tests = []struct {
+	tests := []struct {
 		value interface{}
 		tag   string
 		field string
@@ -465,7 +464,7 @@ func TestAliases(t *testing.T) {
 func TestRules_InvalidTypes(t *testing.T) {
 	t.Parallel()
 
-	var tests = []struct {
+	tests := []struct {
 		value interface{}
 		tags  string
 		error string

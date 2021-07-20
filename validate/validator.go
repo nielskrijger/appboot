@@ -256,7 +256,7 @@ func (mv *Validator) deepValidateCollection(f reflect.Value, field string) Field
 			if !mv.fullErrorPath {
 				return errs
 			}
-			var result = make(FieldErrors, 0, len(errs))
+			result := make(FieldErrors, 0, len(errs))
 			for _, err := range errs {
 				result = append(result, FieldError{
 					Field:       field + "." + err.Field,

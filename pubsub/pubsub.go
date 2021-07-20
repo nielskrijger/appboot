@@ -3,7 +3,6 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
-	"github.com/rs/zerolog"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -11,6 +10,7 @@ import (
 	gpubsub "cloud.google.com/go/pubsub"
 	appcontext "github.com/nielskrijger/goboot/context"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -225,7 +225,6 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 		Data:       msg.Data,
 		Attributes: newMap,
 	}).Get(ctx)
-
 	// When successful ACK, if unsuccessful NACK
 	if err != nil {
 		msg.Nack()

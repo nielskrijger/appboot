@@ -1,9 +1,9 @@
 package validate_test
 
 import (
-	"github.com/nielskrijger/goboot/validate"
 	"testing"
 
+	"github.com/nielskrijger/goboot/validate"
 	"github.com/stretchr/testify/assert"
 )
 
