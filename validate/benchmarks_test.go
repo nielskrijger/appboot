@@ -1,6 +1,9 @@
-package validate
+package validate_test
 
-import "testing"
+import (
+	"github.com/nielskrijger/goboot/validate"
+	"testing"
+)
 
 func BenchmarkFields_Valid(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -20,7 +23,7 @@ var benchmarkUser = &fakeUser{
 
 func BenchmarkStruct_Valid(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = Struct(benchmarkUser)
+		_ = validate.Struct(benchmarkUser)
 	}
 }
 
@@ -30,6 +33,6 @@ var benchmarkUserInvalid = &fakeUser{
 
 func BenchmarkStruct_Invalid(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = Struct(benchmarkUserInvalid)
+		_ = validate.Struct(benchmarkUserInvalid)
 	}
 }

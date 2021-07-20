@@ -1,7 +1,8 @@
-package validate
+package validate_test
 
 import (
 	"fmt"
+	"github.com/nielskrijger/goboot/validate"
 	"strings"
 	"testing"
 	"time"
@@ -34,7 +35,7 @@ type requiredStruct struct {
 }
 
 func TestStruct_Required(t *testing.T) {
-	errs := Struct(&requiredStruct{}).(FieldErrors)
+	errs := validate.Struct(&requiredStruct{}).(validate.FieldErrors)
 
 	tests := []string{
 		"String",
@@ -59,7 +60,7 @@ type simpleStruct struct {
 }
 
 func TestStruct_SingleError(t *testing.T) {
-	v := NewValidator(WithStandardRules())
+	v := validate.NewValidator(validate.WithStandardRules())
 
 	errs := v.Struct(&simpleStruct{})
 
@@ -81,7 +82,7 @@ type complexStruct struct {
 }
 
 func TestStruct_MultipleErrors(t *testing.T) {
-	v := NewValidator(WithFullErrorPath(), WithStandardRules())
+	v := validate.NewValidator(validate.WithFullErrorPath(), validate.WithStandardRules())
 
 	errs := v.Struct(&complexStruct{})
 
@@ -90,14 +91,14 @@ func TestStruct_MultipleErrors(t *testing.T) {
 }
 
 func TestStruct_WithoutFullErrorPath(t *testing.T) {
-	errs := Struct(&complexStruct{})
+	errs := validate.Struct(&complexStruct{})
 
 	assert.Len(t, errs, 5)
 	assert.Equal(t, "fields are invalid: A, A, C, D, A", errs.Error())
 }
 
 func TestField_Required(t *testing.T) {
-	err := Field("", "Name", "required").(FieldError)
+	err := validate.Field("", "Name", "required").(validate.FieldError)
 
 	assert.Equal(t, "field is invalid: Name", err.Error())
 	assert.Equal(t, "Name", err.Field)
@@ -105,15 +106,15 @@ func TestField_Required(t *testing.T) {
 }
 
 func TestField_Optional(t *testing.T) {
-	err := Field("", "Name", "optional,lte=3")
+	err := validate.Field("", "Name", "optional,lte=3")
 
 	assert.Nil(t, err)
 }
 
 func (u *fakeUser) Validate() error {
-	return Fields(
-		Field(u.Name, "Name", "required,gte=3,lte=25"),
-		Field(u.Gender, "Gender", "gender"),
+	return validate.Fields(
+		validate.Field(u.Name, "Name", "required,gte=3,lte=25"),
+		validate.Field(u.Gender, "Gender", "gender"),
 	)
 }
 
@@ -132,7 +133,7 @@ var fakeInvalidUser = &fakeUser{
 }
 
 func TestFields_Invalid(t *testing.T) {
-	errs := fakeInvalidUser.Validate().(FieldErrors)
+	errs := fakeInvalidUser.Validate().(validate.FieldErrors)
 
 	assert.Len(t, errs, 2)
 }
@@ -145,22 +146,22 @@ var gteTests = []struct {
 	{"123", ""},
 	{2, "Value must be at least 3"},
 	{3, ""},
-	{asUint("2"), "Value must be at least 3"},
-	{asUint("3"), ""},
-	{asFloat("2.999999"), "Value must be at least 3"},
-	{asFloat("3.0"), ""},
+	{uint(2), "Value must be at least 3"},
+	{uint(3), ""},
+	{2.999999, "Value must be at least 3"},
+	{3.0, ""},
 	{[]string{"a", "b"}, "Value must contain at least 3 elements"},
 	{[]string{"a", "b", "c"}, ""},
 }
 
 func TestGTE(t *testing.T) {
 	for _, tt := range gteTests {
-		err := Field(tt.test, "Value", "gte=3")
+		err := validate.Field(tt.test, "Value", "gte=3")
 		if tt.error == "" {
 			assert.Nil(t, err, fmt.Sprintf("failed validation for %+v", tt.test))
 		} else {
 			assert.NotNil(t, err)
-			assert.Equal(t, tt.error, err.(FieldError).Description)
+			assert.Equal(t, tt.error, err.(validate.FieldError).Description)
 		}
 	}
 }
@@ -173,22 +174,22 @@ var lteTests = []struct {
 	{"123", "Value must be at most 2 characters long"},
 	{2, ""},
 	{3, "Value maximum value is 2"},
-	{asUint("2"), ""},
-	{asUint("3"), "Value maximum value is 2"},
-	{asFloat("2.0"), ""},
-	{asFloat("2.000001"), "Value maximum value is 2"},
+	{uint(2), ""},
+	{uint(3), "Value maximum value is 2"},
+	{2.0, ""},
+	{2.000001, "Value maximum value is 2"},
 	{[]string{"a", "b"}, ""},
 	{[]string{"a", "b", "c"}, "Value may not contain more than 2 elements"},
 }
 
 func TestLTE(t *testing.T) {
 	for _, tt := range lteTests {
-		err := Field(tt.test, "Value", "lte=2")
+		err := validate.Field(tt.test, "Value", "lte=2")
 		if tt.error == "" {
 			assert.Nil(t, err, fmt.Sprintf("failed validation for %+v", tt.test))
 		} else {
 			assert.NotNil(t, err)
-			assert.Equal(t, tt.error, err.(FieldError).Description)
+			assert.Equal(t, tt.error, err.(validate.FieldError).Description)
 		}
 	}
 }
@@ -200,7 +201,7 @@ type testStruct struct{}
 func TestGLTE_InvalidType(t *testing.T) {
 	for _, tag := range invalidTypeTests {
 		assert.PanicsWithValue(t, "invalid type for "+tag+" tag", func() {
-			_ = Field(&testStruct{}, "TEST", tag+"=3")
+			_ = validate.Field(&testStruct{}, "TEST", tag+"=3")
 		})
 	}
 }
@@ -390,12 +391,12 @@ var testTags = []struct {
 
 func TestRules(t *testing.T) {
 	for _, tt := range testTags {
-		errs := Struct(tt.user)
+		errs := validate.Struct(tt.user)
 		if tt.errors == nil {
 			assert.Nil(t, errs, fmt.Sprintf("failed validation for %+v", tt.user))
 		} else {
 			for field, desc := range tt.errors {
-				err := findError(errs.(FieldErrors), field)
+				err := findError(errs.(validate.FieldErrors), field)
 				assert.NotNil(t, err, "failed "+field+" validation")
 				assert.Equal(t, desc, err.Description)
 			}
@@ -403,7 +404,7 @@ func TestRules(t *testing.T) {
 	}
 }
 
-func findError(errs FieldErrors, field string) FieldError {
+func findError(errs validate.FieldErrors, field string) validate.FieldError {
 	for _, err := range errs {
 		if err.Field == field {
 			return err
@@ -430,16 +431,16 @@ var testAliases = []struct {
 	{tomorrow.Format("2006-01-02"), "birthdate", "Birthdate", "Birthdate maximum date is " + now.Format("2006-01-02")},
 	{"1899-12-31", "birthdate", "Birthdate", "Birthdate minimum date is 1900-01-01"},
 	{"1899-12-31T12:30", "birthdate", "Birthdate", "Birthdate is not a valid date (YYYY-MM-DD)"},
-	{InvalidTime, "birthdate", "Birthdate", "Birthdate is not a valid date (YYYY-MM-DD)"},
+	{validate.InvalidTime, "birthdate", "Birthdate", "Birthdate is not a valid date (YYYY-MM-DD)"},
 }
 
 func TestAliases(t *testing.T) {
 	for _, tt := range testAliases {
-		err := Field(tt.value, tt.field, tt.tag)
+		err := validate.Field(tt.value, tt.field, tt.tag)
 		if tt.error == "" {
 			assert.Nil(t, err)
 		} else {
-			assert.Equal(t, tt.error, err.(FieldError).Description)
+			assert.Equal(t, tt.error, err.(validate.FieldError).Description)
 		}
 	}
 }
@@ -464,7 +465,7 @@ var panicTests = []struct {
 func TestRules_InvalidTypes(t *testing.T) {
 	for _, tt := range panicTests {
 		assert.PanicsWithValue(t, tt.error, func() {
-			_ = Field(tt.value, "TEST", tt.tags)
+			_ = validate.Field(tt.value, "TEST", tt.tags)
 		})
 	}
 }

@@ -3,7 +3,7 @@ package grpc
 import (
 	"fmt"
 
-	"github.com/nielskrijger/go-utils/validate"
+	"github.com/nielskrijger/goboot/validate"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -3,7 +3,7 @@ package redis
 import (
 	"testing"
 
-	"github.com/nielskrijger/go-utils/context"
+	"github.com/nielskrijger/goboot/context"
 	"github.com/stretchr/testify/assert"
 )
 

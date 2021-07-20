@@ -1,13 +1,13 @@
 package template
 
 import (
+	"fmt"
 	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/Masterminds/sprig"
-	"github.com/pkg/errors"
 )
 
 // Loader loads layout, partial and template files from a specified
@@ -41,7 +41,7 @@ func NewTemplateLoader(dir string) *Loader {
 func (t *Loader) LoadAllTemplates() (map[string]*template.Template, error) {
 	files, err := os.ReadDir(t.Dir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read dir %q: %w", t.Dir, err)
 	}
 
 	tmpls := make(map[string]*template.Template)
@@ -49,12 +49,12 @@ func (t *Loader) LoadAllTemplates() (map[string]*template.Template, error) {
 		tmplName := strings.TrimSuffix(f.Name(), filepath.Ext(f.Name()))
 		info, err := f.Info()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read file info %q: %w", f.Name(), err)
 		}
 		if t.isTemplate(info) {
 			tmpl, err := t.LoadTemplate(tmplName)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to load templates: %w", err)
 			}
 			tmpls[tmplName] = tmpl
 		}
@@ -77,7 +77,7 @@ func (t *Loader) LoadTemplate(templateName string) (*template.Template, error) {
 func (t *Loader) getTemplateFileNames(templateName string) ([]string, error) {
 	templatePath := t.Dir + "/" + templateName + t.Suffix
 	if _, err := os.Stat(templatePath); err != nil {
-		return nil, errors.Wrap(err, "template file not found")
+		return nil, fmt.Errorf("template file not found: %w", err)
 	}
 
 	fs := make([]string, 0)
@@ -104,12 +104,12 @@ func (t *Loader) dirFilenames(dir string) ([]string, error) {
 	fs := make([]string, 0)
 	partials, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read dir %q: %w", dir, err)
 	}
 	for _, f := range partials {
 		info, err := f.Info()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read file info %q: %w", f.Name(), err)
 		}
 		if t.isTemplate(info) {
 			fs = append(fs, dir+"/"+f.Name())

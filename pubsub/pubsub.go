@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 
 	gpubsub "cloud.google.com/go/pubsub"
-	appcontext "github.com/nielskrijger/go-utils/context"
+	appcontext "github.com/nielskrijger/goboot/context"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

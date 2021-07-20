@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/nielskrijger/go-utils/validate"
+	"github.com/nielskrijger/goboot/validate"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"

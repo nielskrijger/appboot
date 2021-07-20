@@ -1,4 +1,4 @@
-module github.com/nielskrijger/go-utils
+module github.com/nielskrijger/goboot
 
 go 1.16
 

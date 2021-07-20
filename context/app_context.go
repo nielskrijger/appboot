@@ -3,7 +3,7 @@ package context
 import (
 	"os"
 
-	"github.com/nielskrijger/go-utils/config"
+	"github.com/nielskrijger/goboot/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"

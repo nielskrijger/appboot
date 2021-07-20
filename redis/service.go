@@ -1,11 +1,11 @@
 package redis
 
 import (
-	"github.com/rs/zerolog"
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/nielskrijger/go-utils/context"
+	"github.com/nielskrijger/goboot/context"
+	"github.com/rs/zerolog"
 )
 
 const (

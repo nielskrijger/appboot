@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-pg/pg"
-	"github.com/nielskrijger/go-utils/context"
-	"github.com/nielskrijger/go-utils/migrate"
+	"github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot/migrate"
 )
 
 const (

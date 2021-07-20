@@ -1,7 +1,7 @@
 package context
 
 import (
-	"github.com/nielskrijger/go-utils/test"
+	"github.com/nielskrijger/goboot/test"
 	"github.com/rs/zerolog"
 	"testing"
 

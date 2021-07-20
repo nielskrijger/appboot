@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	appcontext "github.com/nielskrijger/go-utils/context"
-	"github.com/nielskrijger/go-utils/test"
+	appcontext "github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
