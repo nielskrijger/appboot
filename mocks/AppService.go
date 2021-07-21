@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	context "github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -27,11 +27,11 @@ func (_m *AppService) Close() error {
 }
 
 // Configure provides a mock function with given fields: ctx
-func (_m *AppService) Configure(ctx *context.AppContext) error {
+func (_m *AppService) Configure(ctx *goboot.AppContext) error {
 	ret := _m.Called(ctx)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*context.AppContext) error); ok {
+	if rf, ok := ret.Get(0).(func(*goboot.AppContext) error); ok {
 		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)

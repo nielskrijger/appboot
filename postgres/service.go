@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/go-pg/pg"
-	"github.com/nielskrijger/goboot/context"
-	"github.com/nielskrijger/goboot/migrate"
+	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 )
 
@@ -68,7 +67,7 @@ func (s *Service) Name() string {
 
 // Configure connects to postgres and logs connection info for
 // debugging connectivity issues.
-func (s *Service) Configure(ctx *context.AppContext) error {
+func (s *Service) Configure(ctx *goboot.AppContext) error {
 	s.log = ctx.Log
 	s.confDir = ctx.ConfDir
 
@@ -162,9 +161,18 @@ func (s *Service) Init() error {
 	q := u.Query()
 	q.Set("connect_timeout", strconv.Itoa(s.Config.ConnectTimeout))
 	u.RawQuery = q.Encode()
-	return migrate.MustMigrate(s.log, u.String(), s.confDir+"/migrations")
+
+	if err := Migrate(s.log, u.String(), s.confDir+"/migrations"); err != nil {
+		return fmt.Errorf("running postgres migrations: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Service) Close() error {
-	return s.DB.Close()
+	if err := s.DB.Close(); err != nil {
+		return fmt.Errorf("closing %s service: %w", s.Name(), err)
+	}
+
+	return nil
 }

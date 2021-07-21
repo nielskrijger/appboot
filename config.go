@@ -1,4 +1,4 @@
-package config
+package goboot
 
 import (
 	"path/filepath"

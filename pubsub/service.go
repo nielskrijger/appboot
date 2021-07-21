@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 
 	gpubsub "cloud.google.com/go/pubsub"
-	appcontext "github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
@@ -135,7 +135,7 @@ func (s *Service) Name() string {
 
 // Configure implements the context.AppService interface and instantiates
 // the client connection to gcloud pubsub.
-func (s *Service) Configure(appctx *appcontext.AppContext) error {
+func (s *Service) Configure(appctx *goboot.AppContext) error {
 	s.log = appctx.Log
 	for _, option := range s.options {
 		option(s)
@@ -181,12 +181,17 @@ func (s *Service) CreateAll() error {
 // method.
 func (s *Service) Init() error {
 	s.log.Info().Msg("ensuring all google pubsub topics & subscriptions exist")
+
 	return s.CreateAll()
 }
 
 // Close releases any resources held by the pubsub Service such as memory and goroutines.
 func (s *Service) Close() error {
-	return s.Client.Close()
+	if err := s.Client.Close(); err != nil {
+		return fmt.Errorf("closing %s service: %w", s.Name(), err)
+	}
+
+	return nil
 }
 
 // DeadLetter publishes a copy of a message to the deadletter channel and ACK's

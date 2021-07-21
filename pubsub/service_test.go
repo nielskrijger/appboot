@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	appcontext "github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot"
 	"github.com/nielskrijger/goboot/pubsub"
 	"github.com/nielskrijger/goboot/utils"
 	"github.com/rs/zerolog"
@@ -26,7 +26,7 @@ var (
 	errTest2 = errors.New("test error 2")
 )
 
-func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*pubsub.Service, *utils.TestLogger) {
+func newPubSubEmulatorService(t *testing.T, deadLetter bool) *pubsub.Service {
 	t.Helper()
 
 	if testing.Short() {
@@ -53,7 +53,7 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*pubsub.Service, *
 
 	// configure pubsub Service with appcontext
 	s := pubsub.NewPubSubService("metrix-io", opts...)
-	appctx := appcontext.NewAppContext("../testdata/conf", "postgres-invalid")
+	appctx := goboot.NewAppContext("../testdata/conf", "postgres-invalid")
 
 	testLogger := &utils.TestLogger{}
 	appctx.Log = zerolog.New(testLogger)
@@ -67,11 +67,11 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*pubsub.Service, *
 
 	assert.Nil(t, s.Init())
 
-	return s, testLogger
+	return s
 }
 
 func TestReceiveAll_Success(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	defer s.Close()
 
 	ctx := context.Background()
@@ -102,7 +102,7 @@ func findEvent(msgs []*pubsub.RichMessage, eventName string) *pubsub.RichMessage
 }
 
 func TestReceiveAll_ChannelDoesNotExist(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	defer s.Close()
 
 	ctx := context.Background()
@@ -112,7 +112,7 @@ func TestReceiveAll_ChannelDoesNotExist(t *testing.T) {
 }
 
 func TestReceiveAll_ContextClosed(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 
 	ctx := context.Background()
@@ -122,7 +122,7 @@ func TestReceiveAll_ContextClosed(t *testing.T) {
 }
 
 func TestPublishEvent_ChannelDoesNotExist(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
 	err := s.PublishEvent(ctx, "unknown", "ev1", "test message")
@@ -131,7 +131,7 @@ func TestPublishEvent_ChannelDoesNotExist(t *testing.T) {
 }
 
 func TestPublishEvent_MarshalError(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
 	err := s.PublishEvent(ctx, "test-channel", "ev1", math.Inf(1))
@@ -140,7 +140,7 @@ func TestPublishEvent_MarshalError(t *testing.T) {
 }
 
 func TestPublishEvent_ContextClosed(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 
 	tout, _ := time.ParseDuration("1ms")
 
@@ -153,7 +153,7 @@ func TestPublishEvent_ContextClosed(t *testing.T) {
 }
 
 func TestReceive_Success(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 	c := make(chan *pubsub.RichMessage)
 
@@ -171,7 +171,7 @@ func TestReceive_Success(t *testing.T) {
 }
 
 func TestReceive_ChannelDoesNotExit(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
 	err := s.Receive(ctx, "unknown", func(context.Context, *pubsub.RichMessage) {})
@@ -180,7 +180,7 @@ func TestReceive_ChannelDoesNotExit(t *testing.T) {
 }
 
 func TestReceive_ChannelWithoutSubscription(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
 	err := s.Receive(ctx, "without-subscription", func(context.Context, *pubsub.RichMessage) {})
@@ -189,7 +189,7 @@ func TestReceive_ChannelWithoutSubscription(t *testing.T) {
 }
 
 func TestDeleteChannel_ChannelDoesNotExist(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 
 	err := s.DeleteChannel("unknown")
 
@@ -197,7 +197,7 @@ func TestDeleteChannel_ChannelDoesNotExist(t *testing.T) {
 }
 
 func TestDeleteChannel_ServiceClosed(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 
 	err := s.DeleteChannel("test-channel")
@@ -206,7 +206,7 @@ func TestDeleteChannel_ServiceClosed(t *testing.T) {
 }
 
 func TestDeleteAll_ServiceClosed(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 
 	err := s.DeleteAll()
@@ -215,13 +215,16 @@ func TestDeleteAll_ServiceClosed(t *testing.T) {
 }
 
 func TestTryClose_LogErrorOnFailure(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
-	assert.EqualError(t, s.Close(), "pubsub publisher closing error: rpc error: code = Canceled desc = grpc: the client connection is closing")
+	assert.EqualError(t, s.Close(),
+		"closing pubsub service: pubsub publisher closing error: "+
+			"rpc error: code = Canceled desc = grpc: the client connection is closing",
+	)
 }
 
 func TestDeadLetter_Success(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, true)
+	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
@@ -243,7 +246,7 @@ func TestDeadLetter_Success(t *testing.T) {
 }
 
 func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, true)
+	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 
 	// Publish an event and dead letter it twice=
@@ -263,7 +266,7 @@ func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
 }
 
 func TestDeadLetter_ErrorOnFailure(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, false)
+	s := newPubSubEmulatorService(t, false)
 
 	msg := &pubsub.RichMessage{Service: s}
 	err := msg.DeadLetter(context.Background(), errTest)
@@ -272,7 +275,7 @@ func TestDeadLetter_ErrorOnFailure(t *testing.T) {
 }
 
 func TestRetryableError_Success(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, true)
+	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)
@@ -291,7 +294,7 @@ func TestRetryableError_Success(t *testing.T) {
 }
 
 func TestRetryableError_MaxRetryAgeExpired(t *testing.T) {
-	s, _ := newPubSubEmulatorService(t, true)
+	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)

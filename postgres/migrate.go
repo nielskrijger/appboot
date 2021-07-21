@@ -1,8 +1,9 @@
-package migrate
+package postgres
 
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4" //nolint
@@ -35,15 +36,15 @@ func (log *logger) Verbose() bool {
 	return true
 }
 
-// MustMigrate runs Postgres migration files from specified migrations directory.
+// Migrate runs Postgres migration files from specified migrations directory.
 //
 // Panics if anything went wrong.
-func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) error {
+func Migrate(log zerolog.Logger, dsn string, migrationsDir string) error {
 	contextLogger := logger{logger: log}
 
 	dir, err := filepath.Abs(migrationsDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("reading migrations path: %w", err)
 	}
 
 	contextLogger.Printf("running database migrations from %s", dir)
@@ -51,7 +52,7 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) error {
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return err
+		return fmt.Errorf("connecting to postgres: %w", err)
 	}
 
 	defer func() {
@@ -65,17 +66,17 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) error {
 
 	driver, err := p.Open(dsn)
 	if err != nil {
-		return err
+		return fmt.Errorf("open postgres connection for golang-migrate: %w", err)
 	}
 
-	// run migrations
+	// setup migrations connection
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+dir,
 		"postgres",
 		driver,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("connecting to postgres for migrations: %w", err)
 	}
 
 	m.Log = &contextLogger
@@ -85,7 +86,7 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) error {
 		if errors.Is(err, migrate.ErrNoChange) {
 			contextLogger.Printf("database is up-to-date")
 		} else {
-			return err
+			return fmt.Errorf("running migrations: %w", err)
 		}
 	} else {
 		contextLogger.Printf("completed database migrations")

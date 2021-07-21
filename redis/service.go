@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 )
 
@@ -52,10 +52,10 @@ func (s *Service) Name() string {
 	return "redis"
 }
 
-func (s *Service) Configure(ctx *context.AppContext) error {
+func (s *Service) Configure(ctx *goboot.AppContext) error { // nolint:funlen
 	s.log = ctx.Log
-
 	redisConf := &Config{}
+
 	if !ctx.Config.InConfig("redis") {
 		return errMissingConfig
 	}
@@ -123,5 +123,9 @@ func (s *Service) Init() error {
 
 // Close is run right before shutdown. The app waits until close resolves.
 func (s *Service) Close() error {
-	return s.Client.Close()
+	if err := s.Client.Close(); err != nil {
+		return fmt.Errorf("closing %s service: %w", s.Name(), err)
+	}
+
+	return nil
 }
