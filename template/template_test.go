@@ -1,15 +1,16 @@
-package template
+package template_test
 
 import (
 	"bytes"
 	"strings"
 	"testing"
 
+	"github.com/nielskrijger/goboot/template"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewEmailTemplate_Success(t *testing.T) {
-	l := NewTemplateLoader("../test/templates")
+	l := template.NewTemplateLoader("../test/templates")
 	tmpl, err := l.LoadTemplate("one")
 	assert.Nil(t, err)
 
@@ -25,7 +26,7 @@ content:
 }
 
 func TestNewEmailTemplate_LoadLayout2(t *testing.T) {
-	l := NewTemplateLoader("../test/templates")
+	l := template.NewTemplateLoader("../test/templates")
 	tmpl, err := l.LoadTemplate("one")
 	assert.Nil(t, err)
 
@@ -41,27 +42,27 @@ content:
 }
 
 func TestNewEmailTemplate_InvalidTemplatesDir(t *testing.T) {
-	l := NewTemplateLoader("./test/unknown")
+	l := template.NewTemplateLoader("./test/unknown")
 	_, err := l.LoadTemplate("one")
 	assert.Error(t, err, "open ./test/unknown: no such file or directory")
 }
 
 func TestNewEmailTemplate_InvalidPartialsDir(t *testing.T) {
-	l := NewTemplateLoader("../test/templates")
+	l := template.NewTemplateLoader("../test/templates")
 	l.PartialsDir = "/unknown/partials"
 	_, err := l.LoadTemplate("one")
 	assert.Error(t, err, "open ../test/templates/unknown: no such file or directory")
 }
 
 func TestNewEmailTemplate_InvalidLayoutsDir(t *testing.T) {
-	l := NewTemplateLoader("../test/templates")
+	l := template.NewTemplateLoader("../test/templates")
 	l.LayoutsDir = "/unknown/layouts"
 	_, err := l.LoadTemplate("one")
 	assert.Error(t, err, "open ../test/templates/unknown: no such file or directory")
 }
 
 func TestLoadAllTemplates_Success(t *testing.T) {
-	l := NewTemplateLoader("../test/templates")
+	l := template.NewTemplateLoader("../test/templates")
 	tmpl, err := l.LoadAllTemplates()
 
 	assert.Nil(t, err)
@@ -71,13 +72,13 @@ func TestLoadAllTemplates_Success(t *testing.T) {
 }
 
 func TestLoadAllTemplates_InvalidTemplatesDir(t *testing.T) {
-	l := NewTemplateLoader("../test/unknown")
+	l := template.NewTemplateLoader("../test/unknown")
 	_, err := l.LoadAllTemplates()
 	assert.Error(t, err, "open ./test/unknown: no such file or directory")
 }
 
 func TestLoadAllTemplates_InvalidPartialsDir(t *testing.T) {
-	l := NewTemplateLoader("../test/templates")
+	l := template.NewTemplateLoader("../test/templates")
 	l.PartialsDir = "/unknown/partials"
 	_, err := l.LoadAllTemplates()
 	assert.Error(t, err, "open ../test/templates/unknown: no such file or directory")

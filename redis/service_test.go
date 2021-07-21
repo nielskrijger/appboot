@@ -1,9 +1,10 @@
-package redis
+package redis_test
 
 import (
 	"testing"
 
 	"github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot/redis"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestService_Success(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	s := &Service{}
+	s := &redis.Service{}
 	s.Configure(context.NewAppContext("../test/conf", "redis"))
 	s.Init()
 
@@ -25,7 +26,7 @@ func TestService_ErrorOnConnect(t *testing.T) {
 	}
 
 	assert.Panics(t, func() {
-		s := &Service{}
+		s := &redis.Service{}
 		s.Configure(context.NewAppContext("../test/conf", "redis-invalid"))
 	})
 }

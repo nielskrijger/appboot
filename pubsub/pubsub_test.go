@@ -22,10 +22,13 @@ var (
 	deadLetterTopicID = "dead-letter-topic"
 	deadLetterSubID   = "dead-letter-subscription"
 
-	testError = errors.New("test")
+	errTest  = errors.New("test error")
+	errTest2 = errors.New("test error 2")
 )
 
 func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*pubsub.Service, *utils.TestLogger) {
+	t.Helper()
+
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
@@ -228,7 +231,7 @@ func TestDeadLetter_Success(t *testing.T) {
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)
 	originalMessageID := msgs[0].ID
 
-	_ = msgs[0].DeadLetter(ctx, errors.New("fake error"))
+	_ = msgs[0].DeadLetter(ctx, errTest)
 
 	// One message in dead letter channel
 	msgs, _ = s.ReceiveNr(ctx, "dead-letter", 1)
@@ -239,7 +242,7 @@ func TestDeadLetter_Success(t *testing.T) {
 	assert.Equal(t, topicID, attr["originalTopicID"])
 	assert.Equal(t, subID, attr["originalSubscriptionID"])
 	assert.Equal(t, originalMessageID, attr["originalMessageID"])
-	assert.Equal(t, "fake error", attr["error"])
+	assert.Equal(t, "test error", attr["error"])
 }
 
 func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
@@ -249,9 +252,9 @@ func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
 	// Publish an event and dead letter it twice=
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)
-	_ = msgs[0].DeadLetter(ctx, errors.New("fake error"))
+	_ = msgs[0].DeadLetter(ctx, errTest)
 	msgs, _ = s.ReceiveNr(ctx, "dead-letter", 1)
-	_ = msgs[0].DeadLetter(ctx, errors.New("second fake error"))
+	_ = msgs[0].DeadLetter(ctx, errTest2)
 
 	// One message in dead letter channel
 	msgs, _ = s.ReceiveNr(ctx, "dead-letter", 1)
@@ -259,14 +262,14 @@ func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
 	attr := msgs[0].Attributes
 	assert.Equal(t, "\"test message\"", string(msgs[0].Data))
 	assert.Equal(t, "2", attr["deadLetterCount"])
-	assert.Equal(t, "second fake error", attr["error"])
+	assert.Equal(t, "test error 2", attr["error"])
 }
 
 func TestDeadLetter_ErrorOnFailure(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 
 	msg := &pubsub.RichMessage{Service: s}
-	err := msg.DeadLetter(context.Background(), testError)
+	err := msg.DeadLetter(context.Background(), errTest)
 
 	assert.Equal(t, "no deadletter channel configured", err.Error())
 }
@@ -276,7 +279,7 @@ func TestRetryableError_Success(t *testing.T) {
 	ctx := context.Background()
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)
-	err := msgs[0].RetryableError(ctx, testError)
+	err := msgs[0].RetryableError(ctx, errTest)
 
 	assert.Nil(t, err)
 
@@ -297,7 +300,7 @@ func TestRetryableError_MaxRetryAgeExpired(t *testing.T) {
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)
 	msgs[0].PublishTime = time.Now().Add(time.Duration(-121) * time.Second)
 
-	err := msgs[0].RetryableError(ctx, testError)
+	err := msgs[0].RetryableError(ctx, errTest)
 	assert.Nil(t, err)
 
 	dead, _ := s.ReceiveNr(ctx, "dead-letter", 1)
@@ -316,4 +319,10 @@ var trimTests = []struct {
 	{"日本語", 4, "日"},
 	{"日本語", 5, "日"},
 	{"日本語", 6, "日本"},
+}
+
+func TestStringTrimLeftBytes(t *testing.T) {
+	for _, tt := range trimTests {
+		assert.Equal(t, tt.out, pubsub.TrimLeftBytes(tt.in, tt.maxBytes))
+	}
 }

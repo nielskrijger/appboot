@@ -179,7 +179,7 @@ func Struct(value interface{}) error {
 //
 // Panics if given value is not a struct.
 func (mv *Validator) Struct(value interface{}) error {
-	errs := mv.validateStruct(value)
+	errs := mv.validateStruct(value, "")
 	if len(errs) > 0 {
 		return errs
 	}
@@ -193,7 +193,7 @@ func (mv *Validator) Struct(value interface{}) error {
 // were found.
 //
 // Panics if given value is not a struct.
-func (mv *Validator) validateStruct(value interface{}) FieldErrors {
+func (mv *Validator) validateStruct(value interface{}, fieldName string) (errs FieldErrors) {
 	sv := reflect.ValueOf(value)
 	st := reflect.TypeOf(value)
 
@@ -202,11 +202,33 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 			return nil
 		}
 
-		return mv.validateStruct(sv.Elem().Interface())
+		errs = mv.validateStruct(sv.Elem().Interface(), fieldName)
+	} else {
+		errs = mv.validateStructFields(st, sv)
 	}
 
-	var result FieldErrors
+	if len(errs) == 0 {
+		return nil
+	}
 
+	if !mv.fullErrorPath || fieldName == "" {
+		return errs
+	}
+
+	result := make(FieldErrors, 0, len(errs))
+
+	// Prefix field name to returned error details, e.g. "user.firstname" instead of just "firstname"
+	for _, err := range errs {
+		result = append(result, FieldError{
+			Field:       fieldName + "." + err.Field,
+			Description: err.Description,
+		})
+	}
+
+	return result
+}
+
+func (mv *Validator) validateStructFields(st reflect.Type, sv reflect.Value) (result FieldErrors) {
 	fieldCount := sv.NumField()
 	for i := 0; i < fieldCount; i++ {
 		field := st.Field(i).Name
@@ -232,10 +254,6 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 		if tag != "" {
 			// tags are only defined on validatable fields
 			if err := mv.Field(f.Interface(), st.Field(i).Name, tag); err != nil {
-				if result == nil {
-					result = make(FieldErrors, 0, 1)
-				}
-
 				var fieldError FieldError
 
 				errors.As(err, &fieldError)
@@ -244,12 +262,8 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 		}
 
 		// validate struct, interface, array, slice or map that have no tag
-		errs := mv.deepValidateCollection(f, field)
+		errs := mv.deepValidateTaglessField(f, field)
 		if errs != nil {
-			if result == nil {
-				result = make(FieldErrors, 0, len(errs))
-			}
-
 			result = append(result, errs...)
 		}
 	}
@@ -257,77 +271,76 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 	return result
 }
 
-func (mv *Validator) deepValidateCollection(f reflect.Value, field string) FieldErrors {
-	switch f.Kind() {
+// deepValidateTaglessField validates a struct, interface, array, slice or map that have no tag.
+func (mv *Validator) deepValidateTaglessField(value reflect.Value, field string) FieldErrors {
+	switch value.Kind() {
 	case reflect.Interface, reflect.Ptr:
-		if f.IsNil() {
+		if value.IsNil() {
 			// Whenever nil value is passed there is nothing to validate further
 			return nil
 		}
 
 		fallthrough
 	case reflect.Struct:
-		if errs := mv.validateStruct(f.Interface()); errs != nil {
-			if !mv.fullErrorPath {
-				return errs
-			}
-
-			result := make(FieldErrors, 0, len(errs))
-
-			for _, err := range errs {
-				result = append(result, FieldError{
-					Field:       field + "." + err.Field,
-					Description: err.Description,
-				})
-			}
-
-			return result
-		}
+		return mv.validateStruct(value.Interface(), field)
 	case reflect.Array, reflect.Slice:
-		var result FieldErrors
-
-		for i := 0; i < f.Len(); i++ {
-			if errs := mv.deepValidateCollection(f.Index(i), field+"["+string(rune(i))+"]"); errs != nil {
-				if result == nil {
-					result = FieldErrors{}
-				}
-
-				result = append(result, errs...)
-			}
-		}
-
-		return result
+		return mv.validateCollection(value, field)
 	case reflect.Map:
-		var result FieldErrors
-
-		for _, key := range f.MapKeys() {
-			// validate the map key
-			errs := mv.deepValidateCollection(key, fmt.Sprintf("%s[%+v](key)", field, key.Interface()))
-			if errs != nil {
-				if result == nil {
-					result = FieldErrors{}
-				}
-
-				result = append(result, errs...)
-			}
-
-			// validate the map value
-			value := f.MapIndex(key)
-
-			errs = mv.deepValidateCollection(value, fmt.Sprintf("%s[%+v](value)", field, key.Interface()))
-			if errs != nil {
-				if result == nil {
-					result = FieldErrors{}
-				}
-
-				result = append(result, errs...)
-			}
-		}
-
-		return result
+		return mv.validateMap(value, field)
+	default:
 	}
 
 	return nil
+}
+
+func (mv *Validator) validateCollection(value reflect.Value, field string) (result FieldErrors) {
+	for i := 0; i < value.Len(); i++ {
+		if errs := mv.deepValidateTaglessField(value.Index(i), field+"["+string(rune(i))+"]"); errs != nil {
+			if result == nil {
+				result = FieldErrors{}
+			}
+
+			result = append(result, errs...)
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
+}
+
+func (mv *Validator) validateMap(value reflect.Value, field string) (result FieldErrors) {
+	for _, key := range value.MapKeys() {
+		// validate the map key
+		errs := mv.deepValidateTaglessField(key, fmt.Sprintf("%s[%+v](key)", field, key.Interface()))
+		if errs != nil {
+			if result == nil {
+				result = FieldErrors{}
+			}
+
+			result = append(result, errs...)
+		}
+
+		// validate the map value
+		value := value.MapIndex(key)
+
+		errs = mv.deepValidateTaglessField(value, fmt.Sprintf("%s[%+v](value)", field, key.Interface()))
+		if errs != nil {
+			if result == nil {
+				result = FieldErrors{}
+			}
+
+			result = append(result, errs...)
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }
 
 // Field validates a value based on the provided tags. Returns the
@@ -426,9 +439,9 @@ func (mv *Validator) mustParseTags(t string) []Tag {
 	tags := make([]Tag, 0, len(tl))
 
 	for _, i := range tl {
-		i = strings.Replace(i, `\,`, ",", -1)
+		i = strings.ReplaceAll(i, `\,`, ",")
 		tg := Tag{}
-		v := strings.SplitN(i, "=", 2)
+		v := strings.SplitN(i, "=", 2) //nolint:gomnd
 		tg.Name = strings.Trim(v[0], " ")
 
 		if tg.Name == "" {

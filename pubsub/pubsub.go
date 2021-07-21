@@ -16,12 +16,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	ErrClosed = errors.New("pubsub Service has been closed")
+var ErrClosed = errors.New("pubsub Service has been closed")
 
-	// defaultDeadLetterName is the name used to identity the dead letter channel
-	// if no other name was defined.
-	defaultDeadLetterName = "dead-letter"
+// defaultDeadLetterName is the name used to identity the dead letter channel
+// if no other name was defined.
+const (
+	DefaultDeadLetterName = "dead-letter"
+	RetryDelay            = time.Minute * 2
+	AckDeadline           = 10 * time.Second
+	MaxAttributeLength    = 1024
 )
 
 // Service adds some utility methods to the Google cloud
@@ -84,7 +87,7 @@ type Option func(*Service)
 func WithChannel(ch *Channel) func(*Service) {
 	return func(cl *Service) {
 		if ch.MaxRetryAge == 0 {
-			ch.MaxRetryAge = time.Minute * 2
+			ch.MaxRetryAge = RetryDelay
 		}
 
 		cl.addChannel(ch)
@@ -109,7 +112,7 @@ func WithChannel(ch *Channel) func(*Service) {
 func WithDeadLetter(ch *Channel) func(*Service) {
 	return func(cl *Service) {
 		if ch.ID == "" {
-			ch.ID = defaultDeadLetterName
+			ch.ID = DefaultDeadLetterName
 		}
 
 		cl.addChannel(ch)
@@ -216,11 +219,11 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 	newMap["originalMessageID"] = msg.ID
 	newMap["originalTopicID"] = msg.Channel.TopicID
 	newMap["originalSubscriptionID"] = msg.Channel.SubscriptionID
-	newMap["error"] = trimLeftBytes(cause.Error(), 1024) // max attribute length is 1024 bytes
+	newMap["error"] = TrimLeftBytes(cause.Error(), MaxAttributeLength) // max attribute length is 1024 bytes
 
 	if val, ok := newMap["deadLetterCount"]; ok {
-		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
-			newMap["deadLetterCount"] = strconv.FormatInt(i+1, 10)
+		if i, err := strconv.ParseInt(val, 10, 64); err == nil { //nolint:gomnd
+			newMap["deadLetterCount"] = strconv.FormatInt(i+1, 10) //nolint:gomnd
 		}
 	} else {
 		newMap["deadLetterCount"] = "1"
@@ -285,16 +288,18 @@ func (s *Service) EnsureTopic(topicID string) error {
 	s.log.Info().Msgf("ensure topic %q exists", topicID)
 
 	ctx := context.Background()
-
 	exists, err := s.Topic(topicID).Exists(ctx)
-	if err != nil {
+
+	switch {
+	case err != nil:
 		return fmt.Errorf("checking if topic %s exists: %w", topicID, err)
-	} else if !exists {
+	case !exists:
 		if _, err := s.CreateTopic(ctx, topicID); err != nil {
 			return fmt.Errorf("creating topic %s: %w", topicID, err)
 		}
+
 		s.log.Info().Msgf("created new topic %q", topicID)
-	} else {
+	default:
 		s.log.Info().Msgf("topic %q already exists", topicID)
 	}
 
@@ -317,24 +322,25 @@ func (s *Service) MustEnsureTopic(topicID string) {
 // The subscription is created with an ACK deadline of 10 seconds, meaning the
 // message must be ACK'ed or NACK'ed within 10 seconds or else it will be re-delivered.
 func (s *Service) EnsureSubscription(topicID string, subID string) error {
-	ctx := context.Background()
-
 	s.log.Info().Msgf("ensure subscription %q for topic %q exists", subID, topicID)
 
+	ctx := context.Background()
 	exists, err := s.Subscription(subID).Exists(ctx)
-	if err != nil {
+
+	switch {
+	case err != nil:
 		return fmt.Errorf("checking if subscriptions %s exists: %w", subID, err)
-	} else if !exists {
+	case !exists:
 		_, err := s.CreateSubscription(ctx, subID, gpubsub.SubscriptionConfig{
 			Topic:       s.Topic(topicID),
-			AckDeadline: 10 * time.Second,
+			AckDeadline: AckDeadline,
 		})
 		if err != nil {
 			return fmt.Errorf("creating subscription %s: %w", subID, err)
 		}
 
 		s.log.Info().Msgf("created new subscription %q on topic %q", subID, topicID)
-	} else {
+	default:
 		s.log.Info().Msgf("subscription %q for topic %q already exists", subID, topicID)
 	}
 
@@ -512,9 +518,9 @@ func (s *Service) TryPublishEvent(ctx context.Context, channel string, eventName
 	}
 }
 
-// trimLeftBytes trims a string from the left until the string has max X bytes.
+// TrimLeftBytes trims a string from the left until the string has max X bytes.
 // Removes any invalid runes at the end.
-func trimLeftBytes(str string, maxBytes int) string {
+func TrimLeftBytes(str string, maxBytes int) string {
 	if len(str) < maxBytes {
 		return str
 	}

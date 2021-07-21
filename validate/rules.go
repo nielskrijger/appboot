@@ -124,7 +124,7 @@ var (
 //
 // You're advised not to use this validation for booleans and numbers,
 // since golang defaults empty numbers to 0 and empty booleans to false.
-func Required(v interface{}, _ string) bool {
+func Required(v interface{}, _ string) bool { //nolint:cyclop
 	st := reflect.ValueOf(v)
 	switch st.Kind() {
 	case reflect.String:
@@ -303,7 +303,7 @@ func ISODateErr(field string, _ interface{}, _ Tag) string {
 	return fmt.Sprintf("%s is not a valid date (YYYY-MM-DD)", field)
 }
 
-func MinDate(v interface{}, param string) bool {
+func MinDate(v interface{}, param string) bool { //nolint:cyclop
 	st := reflect.ValueOf(v)
 	if st.Kind() == reflect.Ptr {
 		if st.IsNil() {
@@ -344,7 +344,7 @@ func MinDateErr(field string, _ interface{}, t Tag) string {
 	return fmt.Sprintf("%s minimum date is %s", field, nowToDateString(t.Param))
 }
 
-func MaxDate(v interface{}, param string) bool {
+func MaxDate(v interface{}, param string) bool { //nolint:cyclop
 	st := reflect.ValueOf(v)
 	if st.Kind() == reflect.Ptr {
 		if st.IsNil() {
@@ -551,7 +551,7 @@ func RegexChecker(tagName string, match *regexp.Regexp, v interface{}) bool {
 }
 
 func asInt(param string) int64 {
-	i, err := strconv.ParseInt(param, 0, 64)
+	i, err := strconv.ParseInt(param, 0, 64) //nolint:gomnd
 	if err != nil {
 		panic(fmt.Sprintf("cannot cast %q to int", param))
 	}
@@ -560,7 +560,7 @@ func asInt(param string) int64 {
 }
 
 func asUint(param string) uint64 {
-	i, err := strconv.ParseUint(param, 0, 64)
+	i, err := strconv.ParseUint(param, 0, 64) //nolint:gomnd
 	if err != nil {
 		panic(fmt.Sprintf("cannot cast %q to uint", param))
 	}
@@ -569,7 +569,7 @@ func asUint(param string) uint64 {
 }
 
 func asFloat(param string) float64 {
-	i, err := strconv.ParseFloat(param, 64)
+	i, err := strconv.ParseFloat(param, 64) //nolint:gomnd
 	if err != nil {
 		panic(fmt.Sprintf("cannot cast %q to float", param))
 	}

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var randomErr = errors.New("random error")
+var errRandom = errors.New("random error")
 
 func TestInternalError_Success(t *testing.T) {
 	err := grpc.InternalError
@@ -35,7 +35,7 @@ func TestValidationResult_Empty(t *testing.T) {
 }
 
 func TestValidationResult_InvalidError(t *testing.T) {
-	err := grpc.ValidationErrors(randomErr)
+	err := grpc.ValidationErrors(errRandom)
 
 	assert.NotNil(t, err)
 	r := status.Convert(err)
@@ -85,7 +85,7 @@ func TestValidationError_Empty(t *testing.T) {
 }
 
 func TestValidationError_InvalidError(t *testing.T) {
-	err := grpc.ValidationError(randomErr)
+	err := grpc.ValidationError(errRandom)
 
 	assert.NotNil(t, err)
 	r := status.Convert(err)

@@ -258,155 +258,155 @@ var (
 	now          = time.Now().UTC()
 )
 
+var ruleTests = []struct {
+	user   interface{}
+	errors map[string]string
+}{
+	// date
+	{&fakeUser{Birthdate: nil}, nil},
+	{&fakeUser{Birthdate: &dateZero}, map[string]string{
+		"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
+	}},
+	{&fakeUser{Birthdate: &dateWithTime}, map[string]string{
+		"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
+	}},
+	{&fakeUser{BirthdateString: ""}, nil},
+	{&fakeUser{BirthdateString: "2010-01-02"}, nil},
+	{&fakeUser{BirthdateString: "01-02-2006"}, map[string]string{
+		"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
+	}},
+	{&fakeUser{BirthdateString: "2010-01-02T23:33Z"}, map[string]string{
+		"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
+	}},
+
+	// mindate
+	{&fakeUser{Birthdate: &dateLongAgo}, map[string]string{
+		"Birthdate": "Birthdate minimum date is 1900-01-01",
+	}},
+	{&fakeUser{Future: &yesterday}, map[string]string{
+		"Future": "Future minimum date is " + now.Format("2006-01-02"),
+	}},
+	{&fakeUser{BirthdateString: "1899-12-31"}, map[string]string{
+		"BirthdateString": "BirthdateString minimum date is 1900-01-01",
+	}},
+
+	// maxdate
+	{&fakeUser{Birthdate: &date2011}, map[string]string{
+		"Birthdate": "Birthdate maximum date is 2010-12-31",
+	}},
+
+	// gender
+	{&fakeUser{Gender: ""}, nil},
+	{&fakeUser{Gender: "male"}, nil},
+	{&fakeUser{Gender: "m"}, map[string]string{
+		"Gender": "Gender must be either male, female, genderqueer",
+	}},
+	{&fakeUser{Past: &tomorrow}, map[string]string{
+		"Past": "Past maximum date is " + now.Format("2006-01-02"),
+	}},
+
+	// az_
+	{&fakeUser{Az: ""}, nil},
+	{&fakeUser{Az: "t_est_"}, nil},
+	{&fakeUser{Az: "_test"}, map[string]string{
+		"Az": "Az must contain a-z, _ and not start with a _",
+	}},
+	{&fakeUser{Az: "te0st"}, map[string]string{
+		"Az": "Az must contain a-z, _ and not start with a _",
+	}},
+	{&fakeUser{Azs: []string{"test", "test__"}}, nil},
+	{&fakeUser{Azs: []string{"Test", "test0"}}, map[string]string{
+		"Azs": "Azs must contain a-z, _ and not start with a _",
+	}},
+
+	// aZ09_
+	{&fakeUser{AZ09: ""}, nil},
+	{&fakeUser{AZ09: "Test09__"}, nil},
+	{&fakeUser{AZ09: "_test"}, map[string]string{
+		"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
+	}},
+	{&fakeUser{AZ09: "te st"}, map[string]string{
+		"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
+	}},
+	{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__"}}, nil},
+	{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__", "_test"}}, map[string]string{
+		"AZ09s": "AZ09s must contain 0-9, A-Z, _ and not start with a _",
+	}},
+
+	// name
+	{&fakeUser{Name: ""}, nil},
+	{&fakeUser{Name: "ŵƼǗǨȐ ,.'- ȣΏШア艮"}, nil},
+	{&fakeUser{Name: " spacebegin"}, map[string]string{
+		"Name": "Name must contain unicode letters -,.' and not start or end with a space",
+	}},
+	{&fakeUser{Name: "no9"}, map[string]string{
+		"Name": "Name must contain unicode letters -,.' and not start or end with a space",
+	}},
+	{&fakeUser{Names: []string{"Doe John", "John Doe"}}, nil},
+	{&fakeUser{Names: []string{"hello", "09", "hi"}}, map[string]string{
+		"Names": "Names must contain unicode letters -,.' and not start or end with a space",
+	}},
+
+	// zoneinfo
+	{&fakeUser{Zoneinfo: ""}, nil},
+	{&fakeUser{Zoneinfo: "Europe/Amsterdam"}, nil},
+	{&fakeUser{Zoneinfo: "Unknown/Europe"}, map[string]string{
+		"Zoneinfo": "Zoneinfo is not a valid zoneinfo string (example: 'Europe/Amsterdam')",
+	}},
+
+	// locale
+	{&fakeUser{Locale: ""}, nil},
+	{&fakeUser{Locale: "en und-u-cu-USD zh_Hant_HK_u_co_pinyi"}, nil},
+	{&fakeUser{Locale: "en en-u"}, map[string]string{
+		"Locale": "Locale must contain BCP47 language tags separated by spaces",
+	}},
+
+	// url
+	{&fakeUser{URL: ""}, nil},
+	{&fakeUser{URL: "https://www.cnn.com/test?test=bliep#hashtag=123"}, nil},
+	{&fakeUser{URL: "http://foobar.com/t$-_.+!*\\'(),"}, nil},
+	{&fakeUser{URL: "//www.cnn.com/test?test=bliep#hashtag=123"}, map[string]string{
+		"URL": "URL is not a valid url",
+	}},
+
+	// email
+	{&fakeUser{PrimaryEmail: &fakeEmail{Email: ""}}, nil},
+	{&fakeUser{PrimaryEmail: &fakeEmail{Email: "Dörte@Sörensen.example.com"}}, nil},
+	{&fakeUser{PrimaryEmail: &fakeEmail{Email: "not valid"}}, map[string]string{
+		"Email": "Email is not a valid email",
+	}},
+
+	// resourcename
+	{&fakeUser{Subject: ""}, nil},
+	{&fakeUser{Subject: "mtx:account:test/1-2"}, nil},
+	{&fakeUser{Subject: "mtx:accounT"}, map[string]string{
+		"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+	}},
+	{&fakeUser{Subject: "mtx:"}, map[string]string{
+		"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+	}},
+	{&fakeUser{Subject: "mtx:test*"}, map[string]string{
+		"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+	}},
+	{&fakeUser{Subjects: []string{"", "mtx:account:test-1234", "mtx:test:0-9"}}, nil},
+	{&fakeUser{Subjects: []string{"mtx:test*", "mtx:account:test-1234", "mtx:test:0-9"}}, map[string]string{
+		"Subjects": "Subjects must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
+	}},
+
+	// resourcenamepattern
+	{&fakeUser{Resource: ""}, nil},
+	{&fakeUser{Resource: "mtx:*:b12*:c/*d:**"}, nil},
+	{&fakeUser{Resource: "mtx:accounT"}, map[string]string{
+		"Resource": "Resource must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
+	}},
+	{&fakeUser{Resources: []string{"", "mtx:account:*:123"}}, nil},
+	{&fakeUser{Resources: []string{"", "mtx:account:*:123", "mtx:no_underscore"}}, map[string]string{
+		"Resources": "Resources must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
+	}},
+}
+
 func TestRules(t *testing.T) {
-	tests := []struct {
-		user   interface{}
-		errors map[string]string
-	}{
-		// date
-		{&fakeUser{Birthdate: nil}, nil},
-		{&fakeUser{Birthdate: &dateZero}, map[string]string{
-			"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
-		}},
-		{&fakeUser{Birthdate: &dateWithTime}, map[string]string{
-			"Birthdate": "Birthdate is not a valid date (YYYY-MM-DD)",
-		}},
-		{&fakeUser{BirthdateString: ""}, nil},
-		{&fakeUser{BirthdateString: "2010-01-02"}, nil},
-		{&fakeUser{BirthdateString: "01-02-2006"}, map[string]string{
-			"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
-		}},
-		{&fakeUser{BirthdateString: "2010-01-02T23:33Z"}, map[string]string{
-			"BirthdateString": "BirthdateString is not a valid date (YYYY-MM-DD)",
-		}},
-
-		// mindate
-		{&fakeUser{Birthdate: &dateLongAgo}, map[string]string{
-			"Birthdate": "Birthdate minimum date is 1900-01-01",
-		}},
-		{&fakeUser{Future: &yesterday}, map[string]string{
-			"Future": "Future minimum date is " + now.Format("2006-01-02"),
-		}},
-		{&fakeUser{BirthdateString: "1899-12-31"}, map[string]string{
-			"BirthdateString": "BirthdateString minimum date is 1900-01-01",
-		}},
-
-		// maxdate
-		{&fakeUser{Birthdate: &date2011}, map[string]string{
-			"Birthdate": "Birthdate maximum date is 2010-12-31",
-		}},
-
-		// gender
-		{&fakeUser{Gender: ""}, nil},
-		{&fakeUser{Gender: "male"}, nil},
-		{&fakeUser{Gender: "m"}, map[string]string{
-			"Gender": "Gender must be either male, female, genderqueer",
-		}},
-		{&fakeUser{Past: &tomorrow}, map[string]string{
-			"Past": "Past maximum date is " + now.Format("2006-01-02"),
-		}},
-
-		// az_
-		{&fakeUser{Az: ""}, nil},
-		{&fakeUser{Az: "t_est_"}, nil},
-		{&fakeUser{Az: "_test"}, map[string]string{
-			"Az": "Az must contain a-z, _ and not start with a _",
-		}},
-		{&fakeUser{Az: "te0st"}, map[string]string{
-			"Az": "Az must contain a-z, _ and not start with a _",
-		}},
-		{&fakeUser{Azs: []string{"test", "test__"}}, nil},
-		{&fakeUser{Azs: []string{"Test", "test0"}}, map[string]string{
-			"Azs": "Azs must contain a-z, _ and not start with a _",
-		}},
-
-		// aZ09_
-		{&fakeUser{AZ09: ""}, nil},
-		{&fakeUser{AZ09: "Test09__"}, nil},
-		{&fakeUser{AZ09: "_test"}, map[string]string{
-			"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
-		}},
-		{&fakeUser{AZ09: "te st"}, map[string]string{
-			"AZ09": "AZ09 must contain 0-9, A-Z, _ and not start with a _",
-		}},
-		{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__"}}, nil},
-		{&fakeUser{AZ09s: []string{"0_9aZ", "Test09__", "_test"}}, map[string]string{
-			"AZ09s": "AZ09s must contain 0-9, A-Z, _ and not start with a _",
-		}},
-
-		// name
-		{&fakeUser{Name: ""}, nil},
-		{&fakeUser{Name: "ŵƼǗǨȐ ,.'- ȣΏШア艮"}, nil},
-		{&fakeUser{Name: " spacebegin"}, map[string]string{
-			"Name": "Name must contain unicode letters -,.' and not start or end with a space",
-		}},
-		{&fakeUser{Name: "no9"}, map[string]string{
-			"Name": "Name must contain unicode letters -,.' and not start or end with a space",
-		}},
-		{&fakeUser{Names: []string{"Doe John", "John Doe"}}, nil},
-		{&fakeUser{Names: []string{"hello", "09", "hi"}}, map[string]string{
-			"Names": "Names must contain unicode letters -,.' and not start or end with a space",
-		}},
-
-		// zoneinfo
-		{&fakeUser{Zoneinfo: ""}, nil},
-		{&fakeUser{Zoneinfo: "Europe/Amsterdam"}, nil},
-		{&fakeUser{Zoneinfo: "Unknown/Europe"}, map[string]string{
-			"Zoneinfo": "Zoneinfo is not a valid zoneinfo string (example: 'Europe/Amsterdam')",
-		}},
-
-		// locale
-		{&fakeUser{Locale: ""}, nil},
-		{&fakeUser{Locale: "en und-u-cu-USD zh_Hant_HK_u_co_pinyi"}, nil},
-		{&fakeUser{Locale: "en en-u"}, map[string]string{
-			"Locale": "Locale must contain BCP47 language tags separated by spaces",
-		}},
-
-		// url
-		{&fakeUser{URL: ""}, nil},
-		{&fakeUser{URL: "https://www.cnn.com/test?test=bliep#hashtag=123"}, nil},
-		{&fakeUser{URL: "http://foobar.com/t$-_.+!*\\'(),"}, nil},
-		{&fakeUser{URL: "//www.cnn.com/test?test=bliep#hashtag=123"}, map[string]string{
-			"URL": "URL is not a valid url",
-		}},
-
-		// email
-		{&fakeUser{PrimaryEmail: &fakeEmail{Email: ""}}, nil},
-		{&fakeUser{PrimaryEmail: &fakeEmail{Email: "Dörte@Sörensen.example.com"}}, nil},
-		{&fakeUser{PrimaryEmail: &fakeEmail{Email: "not valid"}}, map[string]string{
-			"Email": "Email is not a valid email",
-		}},
-
-		// resourcename
-		{&fakeUser{Subject: ""}, nil},
-		{&fakeUser{Subject: "mtx:account:test/1-2"}, nil},
-		{&fakeUser{Subject: "mtx:accounT"}, map[string]string{
-			"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-		}},
-		{&fakeUser{Subject: "mtx:"}, map[string]string{
-			"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-		}},
-		{&fakeUser{Subject: "mtx:test*"}, map[string]string{
-			"Subject": "Subject must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-		}},
-		{&fakeUser{Subjects: []string{"", "mtx:account:test-1234", "mtx:test:0-9"}}, nil},
-		{&fakeUser{Subjects: []string{"mtx:test*", "mtx:account:test-1234", "mtx:test:0-9"}}, map[string]string{
-			"Subjects": "Subjects must start with 'mtx:' and may contain: a-z, 0-9, -, /, and :",
-		}},
-
-		// resourcenamepattern
-		{&fakeUser{Resource: ""}, nil},
-		{&fakeUser{Resource: "mtx:*:b12*:c/*d:**"}, nil},
-		{&fakeUser{Resource: "mtx:accounT"}, map[string]string{
-			"Resource": "Resource must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
-		}},
-		{&fakeUser{Resources: []string{"", "mtx:account:*:123"}}, nil},
-		{&fakeUser{Resources: []string{"", "mtx:account:*:123", "mtx:no_underscore"}}, map[string]string{
-			"Resources": "Resources must start with 'mtx:' and may contain: a-z, 0-9, -, /, *, and :",
-		}},
-	}
-
-	for _, tt := range tests {
+	for _, tt := range ruleTests {
 		errs := validate.Struct(tt.user)
 		if tt.errors == nil {
 			assert.Nil(t, errs, fmt.Sprintf("failed validation for %+v", tt.user))
