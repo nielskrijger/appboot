@@ -2,6 +2,7 @@ package migrate
 
 import (
 	"database/sql"
+	"errors"
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4" //nolint
@@ -77,7 +78,7 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
 
 	err = m.Up()
 	if err != nil {
-		if err == migrate.ErrNoChange {
+		if errors.Is(err, migrate.ErrNoChange) {
 			contextLogger.Printf("database is up-to-date")
 		} else {
 			panic(err)

@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var randomErr = errors.New("random error")
+
 func TestInternalError_Success(t *testing.T) {
 	err := grpc.InternalError
 
@@ -33,11 +35,11 @@ func TestValidationResult_Empty(t *testing.T) {
 }
 
 func TestValidationResult_InvalidError(t *testing.T) {
-	err := grpc.ValidationErrors(errors.New("random error"))
+	err := grpc.ValidationErrors(randomErr)
 
 	assert.NotNil(t, err)
 	r := status.Convert(err)
-	assert.Equal(t, "random error", r.Message())
+	assert.Equal(t, "unexpected error type: random error", r.Message())
 	assert.Equal(t, codes.Internal, r.Code())
 }
 
@@ -79,11 +81,11 @@ func TestValidationError_Empty(t *testing.T) {
 }
 
 func TestValidationError_InvalidError(t *testing.T) {
-	err := grpc.ValidationError(errors.New("random error"))
+	err := grpc.ValidationError(randomErr)
 
 	assert.NotNil(t, err)
 	r := status.Convert(err)
-	assert.Equal(t, "random error", r.Message())
+	assert.Equal(t, "unexpected error type: random error", r.Message())
 	assert.Equal(t, codes.Internal, r.Code())
 }
 

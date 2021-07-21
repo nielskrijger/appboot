@@ -120,6 +120,7 @@ func (s *Service) connect() {
 			time.Sleep(s.Config.ConnectRetryDuration)
 		} else {
 			s.log.Info().Msg("successfully connected to postgres")
+
 			break
 		}
 	}

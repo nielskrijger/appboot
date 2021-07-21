@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/nielskrijger/goboot/validate"
@@ -21,10 +22,10 @@ func ValidationErrors(err error) error {
 		return nil
 	}
 
-	errs, ok := err.(validate.FieldErrors)
-	if !ok {
+	var errs validate.FieldErrors
+	if !errors.As(err, &errs) {
 		// unexpected, interpret as internal server error
-		return status.New(codes.Internal, err.Error()).Err()
+		return status.New(codes.Internal, fmt.Errorf("unexpected error type: %w", err).Error()).Err()
 	}
 
 	if len(errs) == 0 {
@@ -58,10 +59,10 @@ func ValidationError(err error) error {
 		return nil
 	}
 
-	fieldErr, ok := err.(validate.FieldError)
-	if !ok {
+	var fieldErr validate.FieldError
+	if !errors.As(err, &fieldErr) {
 		// unexpected, interpret as internal server error
-		return status.New(codes.Internal, err.Error()).Err()
+		return status.New(codes.Internal, fmt.Errorf("unexpected error type: %w", err).Error()).Err()
 	}
 
 	st := status.New(codes.InvalidArgument, fieldErr.Error())

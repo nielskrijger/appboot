@@ -36,5 +36,6 @@ func GenerateRandomBytes(n int) ([]byte, error) {
 // generator fails.
 func GenerateRandomString(bytes int) (string, error) {
 	b, err := GenerateRandomBytes(bytes)
+
 	return base64.URLEncoding.EncodeToString(b), err
 }

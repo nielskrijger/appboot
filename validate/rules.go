@@ -371,6 +371,7 @@ func MaxDate(v interface{}, param string) bool {
 	case reflect.Struct:
 		if t, ok := v.(time.Time); ok {
 			maxDate := parseDate(param)
+
 			return t.Before(maxDate) || t.Equal(maxDate)
 		}
 

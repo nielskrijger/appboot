@@ -1,7 +1,6 @@
 package validate_test
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -47,10 +46,14 @@ func TestStruct_Required(t *testing.T) {
 		"Chan",
 	}
 
-	errs := validate.Struct(&requiredStruct{}).(validate.FieldErrors)
+	errs := validate.Struct(&requiredStruct{})
+
+	var fieldErrors validate.FieldErrors
+
+	assert.ErrorAs(t, errs, &fieldErrors)
 	assert.Len(t, errs, len(tests))
 
-	for _, err := range errs {
+	for _, err := range fieldErrors {
 		assert.Contains(t, tests, err.Field)
 		assert.Equal(t, err.Field+" is required", err.Description)
 	}
@@ -99,11 +102,14 @@ func TestStruct_WithoutFullErrorPath(t *testing.T) {
 }
 
 func TestField_Required(t *testing.T) {
-	err := validate.Field("", "Name", "required").(validate.FieldError)
+	err := validate.Field("", "Name", "required")
 
-	assert.Equal(t, "field is invalid: Name", err.Error())
-	assert.Equal(t, "Name", err.Field)
-	assert.Equal(t, "Name is required", err.Description)
+	var fieldError validate.FieldError
+
+	assert.ErrorAs(t, err, &fieldError)
+	assert.Equal(t, "field is invalid: Name", fieldError.Error())
+	assert.Equal(t, "Name", fieldError.Field)
+	assert.Equal(t, "Name is required", fieldError.Description)
 }
 
 func TestField_Optional(t *testing.T) {
@@ -134,9 +140,11 @@ var fakeInvalidUser = &fakeUser{
 }
 
 func TestFields_Invalid(t *testing.T) {
-	errs := fakeInvalidUser.Validate().(validate.FieldErrors)
+	errs := fakeInvalidUser.Validate()
 
-	assert.Len(t, errs, 2)
+	var fieldErrors validate.FieldErrors
+	assert.ErrorAs(t, errs, &fieldErrors)
+	assert.Len(t, fieldErrors, 2)
 }
 
 func TestGTE(t *testing.T) {
@@ -162,7 +170,10 @@ func TestGTE(t *testing.T) {
 			assert.Nil(t, err, fmt.Sprintf("failed validation for %+v", tt.test))
 		} else {
 			assert.NotNil(t, err)
-			assert.Equal(t, tt.error, err.(validate.FieldError).Description)
+
+			var fieldError validate.FieldError
+			assert.ErrorAs(t, err, &fieldError)
+			assert.Equal(t, tt.error, fieldError.Description)
 		}
 	}
 }
@@ -190,7 +201,10 @@ func TestLTE(t *testing.T) {
 			assert.Nil(t, err, fmt.Sprintf("failed validation for %+v", tt.test))
 		} else {
 			assert.NotNil(t, err)
-			assert.Equal(t, tt.error, err.(validate.FieldError).Description)
+
+			var fieldError validate.FieldError
+			assert.ErrorAs(t, err, &fieldError)
+			assert.Equal(t, tt.error, fieldError.Description)
 		}
 	}
 }
@@ -398,8 +412,9 @@ func TestRules(t *testing.T) {
 		} else {
 			for field, desc := range tt.errors {
 				var fieldErrors validate.FieldErrors
-				errors.As(errs, &fieldErrors)
+				assert.ErrorAs(t, errs, &fieldErrors)
 				err := findError(fieldErrors, field)
+
 				assert.NotNil(t, err, "failed "+field+" validation")
 				assert.Equal(t, desc, err.Description)
 			}
@@ -445,7 +460,7 @@ func TestAliases(t *testing.T) {
 			assert.Nil(t, err)
 		} else {
 			var fieldError validate.FieldError
-			assert.True(t, errors.As(err, &fieldError))
+			assert.ErrorAs(t, err, &fieldError)
 			assert.Equal(t, tt.error, fieldError.Description)
 		}
 	}

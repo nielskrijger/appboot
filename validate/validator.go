@@ -236,7 +236,10 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 					result = make(FieldErrors, 0, 1)
 				}
 
-				result = append(result, err.(FieldError))
+				var fieldError FieldError
+				errors.As(err, &fieldError)
+
+				result = append(result, fieldError)
 			}
 		}
 
@@ -392,7 +395,10 @@ func Fields(errs ...error) error {
 				result = make([]FieldError, 0)
 			}
 
-			result = append(result, err.(FieldError))
+			var fieldError FieldError
+			errors.As(err, &fieldError)
+
+			result = append(result, fieldError)
 		}
 	}
 

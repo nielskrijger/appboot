@@ -1,5 +1,7 @@
 package validate
 
+import "errors"
+
 // ValidationResult is a collection of FieldErrors with helper methods.
 type ValidationResult struct {
 	Errors FieldErrors
@@ -44,15 +46,17 @@ func (r *ValidationResult) Error() string {
 
 // AddError adds an error to the ValidationResult.
 func (r *ValidationResult) AddError(err error) {
-	errs, ok := err.(FieldErrors)
-	if ok {
-		for _, fieldErr := range errs {
+	var fieldError FieldError
+	var fieldErrors FieldErrors
+
+	if errors.As(err, &fieldErrors) {
+		for _, fieldErr := range fieldErrors {
 			if err != nil {
 				r.Errors = append(r.Errors, fieldErr)
 			}
 		}
-	} else if err != nil {
-		r.Errors = append(r.Errors, err.(FieldError))
+	} else if errors.As(err, &fieldError) {
+		r.Errors = append(r.Errors, fieldError)
 	}
 }
 
