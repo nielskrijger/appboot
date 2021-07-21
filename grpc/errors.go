@@ -20,28 +20,33 @@ func ValidationErrors(err error) error {
 	if err == nil {
 		return nil
 	}
+
 	errs, ok := err.(validate.FieldErrors)
 	if !ok {
 		// unexpected, interpret as internal server error
 		return status.New(codes.Internal, err.Error()).Err()
 	}
+
 	if len(errs) == 0 {
 		return nil
 	}
 
 	st := status.New(codes.InvalidArgument, errs.Error())
 	br := &errdetails.BadRequest{}
+
 	for _, fieldErr := range errs {
 		br.FieldViolations = append(br.FieldViolations, &errdetails.BadRequest_FieldViolation{
 			Field:       fieldErr.Field,
 			Description: fieldErr.Description,
 		})
 	}
+
 	st, err = st.WithDetails(br)
 	if err != nil {
 		// should never happen, so panic and figure out what happened
 		panic(fmt.Sprintf("failed creating invalid argument error: %v", err))
 	}
+
 	return st.Err()
 }
 
@@ -52,6 +57,7 @@ func ValidationError(err error) error {
 	if err == nil {
 		return nil
 	}
+
 	fieldErr, ok := err.(validate.FieldError)
 	if !ok {
 		// unexpected, interpret as internal server error
@@ -64,6 +70,7 @@ func ValidationError(err error) error {
 		Field:       fieldErr.Field,
 		Description: fieldErr.Description,
 	})
+
 	st, err = st.WithDetails(br)
 	if err != nil {
 		// should never happen, so panic and figure out what happened

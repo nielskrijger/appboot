@@ -1,9 +1,10 @@
-package grpc
+package grpc_test
 
 import (
 	"errors"
 	"testing"
 
+	"github.com/nielskrijger/goboot/grpc"
 	"github.com/nielskrijger/goboot/validate"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestInternalError_Success(t *testing.T) {
-	err := InternalError
+	err := grpc.InternalError
 
 	r := status.Convert(err)
 	assert.Equal(t, codes.Internal, r.Code())
@@ -20,19 +21,19 @@ func TestInternalError_Success(t *testing.T) {
 }
 
 func TestValidationResult_Nil(t *testing.T) {
-	err := ValidationErrors(nil)
+	err := grpc.ValidationErrors(nil)
 
 	assert.Nil(t, err)
 }
 
 func TestValidationResult_Empty(t *testing.T) {
-	err := ValidationErrors(validate.FieldErrors{})
+	err := grpc.ValidationErrors(validate.FieldErrors{})
 
 	assert.Nil(t, err)
 }
 
 func TestValidationResult_InvalidError(t *testing.T) {
-	err := ValidationErrors(errors.New("random error"))
+	err := grpc.ValidationErrors(errors.New("random error"))
 
 	assert.NotNil(t, err)
 	r := status.Convert(err)
@@ -41,7 +42,7 @@ func TestValidationResult_InvalidError(t *testing.T) {
 }
 
 func TestValidationResult_SingleFieldErrors(t *testing.T) {
-	err := ValidationErrors(validate.FieldErrors{
+	err := grpc.ValidationErrors(validate.FieldErrors{
 		{Field: "A", Description: "Message A"},
 	})
 
@@ -55,7 +56,7 @@ func TestValidationResult_SingleFieldErrors(t *testing.T) {
 }
 
 func TestValidationResult_MultipleFieldErrors(t *testing.T) {
-	err := ValidationErrors(validate.FieldErrors{
+	err := grpc.ValidationErrors(validate.FieldErrors{
 		{Field: "A", Description: "Message A"},
 		{Field: "B", Description: "Message B"},
 	})
@@ -72,13 +73,13 @@ func TestValidationResult_MultipleFieldErrors(t *testing.T) {
 }
 
 func TestValidationError_Empty(t *testing.T) {
-	err := ValidationError(nil)
+	err := grpc.ValidationError(nil)
 
 	assert.Nil(t, err)
 }
 
 func TestValidationError_InvalidError(t *testing.T) {
-	err := ValidationError(errors.New("random error"))
+	err := grpc.ValidationError(errors.New("random error"))
 
 	assert.NotNil(t, err)
 	r := status.Convert(err)
@@ -87,7 +88,7 @@ func TestValidationError_InvalidError(t *testing.T) {
 }
 
 func TestValidationError_Success(t *testing.T) {
-	err := ValidationError(validate.FieldError{Field: "A", Description: "Message A"})
+	err := grpc.ValidationError(validate.FieldError{Field: "A", Description: "Message A"})
 
 	assert.NotNil(t, err)
 	r := status.Convert(err)

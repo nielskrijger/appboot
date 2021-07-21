@@ -1,4 +1,4 @@
-package test
+package utils
 
 import (
 	"encoding/json"
@@ -11,6 +11,7 @@ type TestLogger struct {
 
 func (log *TestLogger) Write(p []byte) (n int, err error) {
 	log.out = append(log.out, p...)
+
 	return len(p), nil
 }
 
@@ -21,10 +22,12 @@ func (log *TestLogger) Lines() (result []map[string]interface{}) {
 		_ = json.Unmarshal([]byte(line), &jsonMap)
 		result = append(result, jsonMap)
 	}
+
 	return result
 }
 
 func (log *TestLogger) LastLine() (result map[string]interface{}) {
 	lines := log.Lines()
+
 	return lines[len(lines)-1]
 }

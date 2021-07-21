@@ -1,4 +1,4 @@
-package pubsub
+package pubsub_test
 
 import (
 	"context"
@@ -8,8 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nielskrijger/goboot/utils"
+
+	"github.com/nielskrijger/goboot/pubsub"
+
 	appcontext "github.com/nielskrijger/goboot/context"
-	"github.com/nielskrijger/goboot/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,9 +23,11 @@ var (
 	topicID2          = "test-topic-without-subscription"
 	deadLetterTopicID = "dead-letter-topic"
 	deadLetterSubID   = "dead-letter-subscription"
+
+	testError = errors.New("test")
 )
 
-func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*Service, *test.TestLogger) {
+func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*pubsub.Service, *utils.TestLogger) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
@@ -30,24 +35,26 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*Service, *test.Te
 	if _, exists := os.LookupEnv("PUBSUB_EMULATOR_HOST"); !exists {
 		_ = os.Setenv("PUBSUB_EMULATOR_HOST", "localhost:8085")
 	}
+
 	if _, exists := os.LookupEnv("PUBSUB_PROJECT_ID"); !exists {
 		_ = os.Setenv("PUBSUB_PROJECT_ID", "metrix-io")
 	}
 
-	opts := []Option{
-		WithChannel(&Channel{ID: "test-channel", TopicID: topicID, SubscriptionID: subID}),
-		WithChannel(&Channel{ID: "without-subscription", TopicID: topicID2}),
+	opts := []pubsub.Option{
+		pubsub.WithChannel(&pubsub.Channel{ID: "test-channel", TopicID: topicID, SubscriptionID: subID}),
+		pubsub.WithChannel(&pubsub.Channel{ID: "without-subscription", TopicID: topicID2}),
 	}
 
 	if deadLetter {
-		opts = append(opts, WithDeadLetter(&Channel{TopicID: deadLetterTopicID, SubscriptionID: deadLetterSubID}))
+		opts = append(opts, pubsub.WithDeadLetter(
+			&pubsub.Channel{TopicID: deadLetterTopicID, SubscriptionID: deadLetterSubID}))
 	}
 
-	// configure pubsub service with appcontext
-	s := NewPubSubService("metrix-io", opts...)
+	// configure pubsub Service with appcontext
+	s := pubsub.NewPubSubService("metrix-io", opts...)
 	appctx := appcontext.NewAppContext("../test/conf", "postgres-invalid")
 
-	testLogger := &test.TestLogger{}
+	testLogger := &utils.TestLogger{}
 	appctx.Log = zerolog.New(testLogger)
 
 	s.Configure(appctx)
@@ -56,6 +63,7 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*Service, *test.Te
 	if err := s.DeleteAll(); err != nil {
 		panic(err)
 	}
+
 	s.Init()
 
 	return s, testLogger
@@ -64,8 +72,8 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*Service, *test.Te
 func TestReceiveAll_Success(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 	defer s.Close()
-	ctx := context.Background()
 
+	ctx := context.Background()
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 	_ = s.PublishEvent(ctx, "test-channel", "ev2", "test message2")
 
@@ -82,20 +90,21 @@ func TestReceiveAll_Success(t *testing.T) {
 	assert.Equal(t, "\"test message2\"", string(ev2.Data))
 }
 
-func findEvent(msgs []*RichMessage, eventName string) *RichMessage {
+func findEvent(msgs []*pubsub.RichMessage, eventName string) *pubsub.RichMessage {
 	for _, msg := range msgs {
 		if msg.Attributes["event"] == eventName {
 			return msg
 		}
 	}
+
 	return nil
 }
 
 func TestReceiveAll_ChannelDoesNotExist(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 	defer s.Close()
-	ctx := context.Background()
 
+	ctx := context.Background()
 	_, err := s.ReceiveNr(ctx, "unknown", 1)
 
 	assert.Equal(t, "channel \"unknown\" not found", err.Error())
@@ -104,11 +113,11 @@ func TestReceiveAll_ChannelDoesNotExist(t *testing.T) {
 func TestReceiveAll_ContextClosed(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 	s.Close()
-	ctx := context.Background()
 
+	ctx := context.Background()
 	_, err := s.ReceiveNr(ctx, "test-channel", 1)
 
-	assert.Equal(t, ErrClosed, err)
+	assert.Equal(t, pubsub.ErrClosed, err)
 }
 
 func TestPublishEvent_ChannelDoesNotExist(t *testing.T) {
@@ -133,26 +142,27 @@ func TestPublishEvent_ContextClosed(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 
 	tout, _ := time.ParseDuration("1ms")
+
 	ctx, cancel := context.WithTimeout(context.Background(), tout)
 	defer cancel()
 
 	err := s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 
-	assert.Equal(t, ErrClosed, err)
+	assert.Equal(t, pubsub.ErrClosed, err)
 }
 
 func TestReceive_Success(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
-	c := make(chan *RichMessage)
+	c := make(chan *pubsub.RichMessage)
 
 	go func() {
-		_ = s.Receive(ctx, "test-channel", func(ctx context.Context, m *RichMessage) {
+		_ = s.Receive(ctx, "test-channel", func(ctx context.Context, m *pubsub.RichMessage) {
 			c <- m
 		})
 	}()
-	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 
+	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 	msg := <-c
 
 	assert.Equal(t, "ev1", msg.Attributes["event"])
@@ -163,7 +173,7 @@ func TestReceive_ChannelDoesNotExit(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
-	err := s.Receive(ctx, "unknown", func(context.Context, *RichMessage) {})
+	err := s.Receive(ctx, "unknown", func(context.Context, *pubsub.RichMessage) {})
 
 	assert.Equal(t, "channel \"unknown\" not found", err.Error())
 }
@@ -172,7 +182,7 @@ func TestReceive_ChannelWithoutSubscription(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
-	err := s.Receive(ctx, "without-subscription", func(context.Context, *RichMessage) {})
+	err := s.Receive(ctx, "without-subscription", func(context.Context, *pubsub.RichMessage) {})
 
 	assert.Equal(t, "channel \"without-subscription\" does not have a subscription", err.Error())
 }
@@ -191,7 +201,7 @@ func TestDeleteChannel_ServiceClosed(t *testing.T) {
 
 	err := s.DeleteChannel("test-channel")
 
-	assert.Equal(t, ErrClosed, err)
+	assert.Equal(t, pubsub.ErrClosed, err)
 }
 
 func TestDeleteAll_ServiceClosed(t *testing.T) {
@@ -200,7 +210,7 @@ func TestDeleteAll_ServiceClosed(t *testing.T) {
 
 	err := s.DeleteAll()
 
-	assert.Equal(t, ErrClosed, err)
+	assert.Equal(t, pubsub.ErrClosed, err)
 }
 
 func TestTryClose_LogErrorOnFailure(t *testing.T) {
@@ -209,7 +219,7 @@ func TestTryClose_LogErrorOnFailure(t *testing.T) {
 	s.Close() // Closing it a second time should log an error
 
 	lines := logs.Lines()
-	assert.Equal(t, "failed closing pubsub service gracefully", lines[len(lines)-1]["message"])
+	assert.Equal(t, "failed closing pubsub Service gracefully", lines[len(lines)-1]["message"])
 }
 
 func TestDeadLetter_Success(t *testing.T) {
@@ -257,8 +267,8 @@ func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
 func TestDeadLetter_ErrorOnFailure(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
 
-	msg := &RichMessage{service: s}
-	err := msg.DeadLetter(context.Background(), errors.New("test"))
+	msg := &pubsub.RichMessage{Service: s}
+	err := msg.DeadLetter(context.Background(), testError)
 
 	assert.Equal(t, "no deadletter channel configured", err.Error())
 }
@@ -268,7 +278,7 @@ func TestRetryableError_Success(t *testing.T) {
 	ctx := context.Background()
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)
-	err := msgs[0].RetryableError(ctx, errors.New("test"))
+	err := msgs[0].RetryableError(ctx, testError)
 
 	assert.Nil(t, err)
 
@@ -289,9 +299,9 @@ func TestRetryableError_MaxRetryAgeExpired(t *testing.T) {
 	msgs, _ := s.ReceiveNr(ctx, "test-channel", 1)
 	msgs[0].PublishTime = time.Now().Add(time.Duration(-121) * time.Second)
 
-	err := msgs[0].RetryableError(ctx, errors.New("test"))
-
+	err := msgs[0].RetryableError(ctx, testError)
 	assert.Nil(t, err)
+
 	dead, _ := s.ReceiveNr(ctx, "dead-letter", 1)
 	assert.Equal(t, msgs[0].ID, dead[0].Attributes["originalMessageID"])
 }
@@ -308,10 +318,4 @@ var trimTests = []struct {
 	{"日本語", 4, "日"},
 	{"日本語", 5, "日"},
 	{"日本語", 6, "日本"},
-}
-
-func TestStringTrimLeftBytes(t *testing.T) {
-	for _, tt := range trimTests {
-		assert.Equal(t, tt.out, trimLeftBytes(tt.in, tt.maxBytes))
-	}
 }

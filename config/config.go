@@ -25,12 +25,15 @@ func MustLoadConfig(log zerolog.Logger, dir string, env string) *viper.Viper {
 	if err != nil {
 		panic(err)
 	}
-	config1 := cfgDir + "/config.yaml"
-	v.SetConfigFile(config1)
+
+	mainCfg := cfgDir + "/config.yaml"
+	v.SetConfigFile(mainCfg)
+
 	if err := v.ReadInConfig(); err != nil {
 		panic(err)
 	}
-	log.Info().Msgf("loaded configuration %q", config1)
+
+	log.Info().Msgf("loaded configuration %q", mainCfg)
 
 	// Load {path}/config.{env}.yaml
 	config2 := cfgDir + "/config." + env + ".yaml"

@@ -3,6 +3,7 @@ package grpc
 import (
 	"crypto/tls"
 	"fmt"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -22,12 +23,14 @@ type TLSConfig struct {
 	Enable bool `yaml:"enable"`
 }
 
-// NewGrpcService establishes a connection with a grpc service
+// NewGrpcConnection establishes a connection with a grpc service.
 func NewGrpcConnection(cfg *ServiceConfig) *grpc.ClientConn {
 	opts := make([]grpc.DialOption, 0)
+
 	if cfg.TLS != nil && cfg.TLS.Enable {
 		// An empty TLS configuration defaults to the OS root certificates
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+		creds := credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12})
+		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
 		opts = append(opts, grpc.WithInsecure())
 	}
@@ -35,7 +38,7 @@ func NewGrpcConnection(cfg *ServiceConfig) *grpc.ClientConn {
 	// Connect to service
 	conn, err := grpc.Dial(cfg.Address, opts...)
 	if err != nil {
-		panic(fmt.Errorf("failed to connect to grpc service %s: %w", cfg.Address, err))
+		panic(fmt.Errorf("connecting to grpc service %s: %w", cfg.Address, err))
 	}
 
 	return conn

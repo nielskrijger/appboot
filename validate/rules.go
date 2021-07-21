@@ -203,6 +203,7 @@ func GTEErr(field string, v interface{}, t Tag) string {
 // the number of items.
 func LTE(v interface{}, param string) bool {
 	st := reflect.ValueOf(v)
+
 	switch st.Kind() {
 	case reflect.String:
 		return int64(len(st.String())) <= asInt(param)
@@ -221,6 +222,7 @@ func LTE(v interface{}, param string) bool {
 
 func LTEErr(field string, v interface{}, t Tag) string {
 	st := reflect.ValueOf(v)
+
 	switch st.Kind() {
 	case reflect.Slice, reflect.Map, reflect.Array:
 		return fmt.Sprintf("%s may not contain more than %s elements", field, t.Param)
@@ -236,14 +238,17 @@ func Gender(v interface{}, _ string) bool {
 	if !ok {
 		panic("invalid type for gender tag")
 	}
+
 	if val == "" {
 		return true
 	}
+
 	for _, gender := range validGenders {
 		if gender == val {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -257,26 +262,33 @@ func ISODate(v interface{}, _ string) bool {
 		if st.IsNil() {
 			return true
 		}
+
 		st = st.Elem()
 	}
+
 	switch st.Kind() {
 	case reflect.String:
 		if st.String() == "" {
 			return true
 		}
+
 		t, err := time.Parse("2006-01-02", st.String())
 		if err != nil {
 			return false
 		}
+
 		res := isWholeDate(t)
+
 		return res
 	case reflect.Struct:
 		if t, ok := v.(time.Time); ok {
 			if t.Equal(InvalidTime) {
 				return false
 			}
+
 			return isWholeDate(t)
 		}
+
 		return false
 	default:
 		panic("invalid type for isodate tag")
@@ -297,24 +309,31 @@ func MinDate(v interface{}, param string) bool {
 		if st.IsNil() {
 			return true
 		}
+
 		st = st.Elem()
 	}
+
 	switch st.Kind() {
 	case reflect.String:
 		if st.String() == "" {
 			return true
 		}
+
 		t, err := time.Parse("2006-01-02", st.String())
 		if err != nil {
 			return false
 		}
+
 		minDate := parseDate(param)
+
 		return t.After(minDate) || t.Equal(minDate)
 	case reflect.Struct:
 		if t, ok := v.(time.Time); ok {
 			minDate := parseDate(param)
+
 			return t.After(minDate) || t.Equal(minDate)
 		}
+
 		return false
 	default:
 		panic("invalid type for mindate tag")
@@ -331,24 +350,30 @@ func MaxDate(v interface{}, param string) bool {
 		if st.IsNil() {
 			return true
 		}
+
 		st = st.Elem()
 	}
+
 	switch st.Kind() {
 	case reflect.String:
 		if st.String() == "" {
 			return true
 		}
+
 		t, err := time.Parse("2006-01-02", st.String())
 		if err != nil {
 			return false
 		}
+
 		maxDate := parseDate(param)
+
 		return t.Before(maxDate) || t.Equal(maxDate)
 	case reflect.Struct:
 		if t, ok := v.(time.Time); ok {
 			maxDate := parseDate(param)
 			return t.Before(maxDate) || t.Equal(maxDate)
 		}
+
 		return false
 	default:
 		panic("invalid type for maxdate tag")
@@ -363,10 +388,12 @@ func parseDate(date string) time.Time {
 	if date == "now" {
 		return time.Now().UTC()
 	}
+
 	d, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		panic(err) // This is a coding error in the tag value
 	}
+
 	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
 }
 
@@ -374,6 +401,7 @@ func nowToDateString(date string) string {
 	if date == "now" {
 		return time.Now().UTC().Format("2006-01-02")
 	}
+
 	return date
 }
 
@@ -406,12 +434,14 @@ func Zoneinfo(v interface{}, _ string) bool {
 	if !ok {
 		panic("invalid type for zoneinfo tag")
 	}
+
 	if val != "" {
 		_, err := time.LoadLocation(val)
 		if err != nil {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -424,6 +454,7 @@ func Locale(v interface{}, _ string) bool {
 	if !ok {
 		panic("invalid type for locale tag")
 	}
+
 	if val != "" {
 		tags := strings.Split(val, " ")
 		for _, s := range tags {
@@ -433,6 +464,7 @@ func Locale(v interface{}, _ string) bool {
 			}
 		}
 	}
+
 	return true
 }
 
@@ -445,6 +477,7 @@ func URL(v interface{}, _ string) bool {
 	if !ok {
 		panic("invalid type for url tag")
 	}
+
 	if val == "" {
 		return true
 	}
@@ -493,6 +526,7 @@ func ResourcePatternErr(field string, _ interface{}, _ Tag) string {
 
 func RegexChecker(tagName string, match *regexp.Regexp, v interface{}) bool {
 	st := reflect.ValueOf(v)
+
 	switch st.Kind() {
 	case reflect.Array:
 		fallthrough
@@ -502,11 +536,13 @@ func RegexChecker(tagName string, match *regexp.Regexp, v interface{}) bool {
 				return false
 			}
 		}
+
 		return true
 	case reflect.String:
 		if st.String() == "" {
 			return true
 		}
+
 		return match.MatchString(st.String())
 	default:
 		panic(fmt.Sprintf("invalid type for %s tag", tagName))
@@ -518,6 +554,7 @@ func asInt(param string) int64 {
 	if err != nil {
 		panic(fmt.Sprintf("cannot cast %q to int", param))
 	}
+
 	return i
 }
 
@@ -526,6 +563,7 @@ func asUint(param string) uint64 {
 	if err != nil {
 		panic(fmt.Sprintf("cannot cast %q to uint", param))
 	}
+
 	return i
 }
 
@@ -534,5 +572,6 @@ func asFloat(param string) float64 {
 	if err != nil {
 		panic(fmt.Sprintf("cannot cast %q to float", param))
 	}
+
 	return i
 }

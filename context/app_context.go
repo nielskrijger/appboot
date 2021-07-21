@@ -5,11 +5,10 @@ import (
 
 	"github.com/nielskrijger/goboot/config"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-// AppContext contains all application-scoped variables
+// AppContext contains all application-scoped variables.
 type AppContext struct {
 	Config  *viper.Viper
 	Log     zerolog.Logger
@@ -41,7 +40,8 @@ type AppService interface {
 // setting up common connections to databases and queues.
 func NewAppContext(confDir string, env string) *AppContext {
 	logger := newLogger()
-	log.Info().Str("env", env).Msgf("starting server")
+	logger.Info().Str("env", env).Msgf("starting server")
+
 	cfg := config.MustLoadConfig(logger, confDir, env)
 
 	return &AppContext{
@@ -61,37 +61,46 @@ func (ctx *AppContext) AddService(service AppService) {
 // By default returns a production logger, to log on DEBUG level set en var LOG_DEBUG=true.
 func newLogger() zerolog.Logger {
 	// use env var instead of config because no config is available at startup
-	debug, ok := os.LookupEnv("LOG_DEBUG")
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	debug, ok := os.LookupEnv("LOG_DEBUG")
+
 	if ok && (debug == "true" || debug == "1") {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
+
 	return zerolog.New(os.Stdout)
 }
 
 // Configure sets up service settings.
 func (ctx *AppContext) Configure() {
 	ctx.Log.Info().Msg("starting app services configuration")
+
 	for _, service := range ctx.services {
 		service.Configure(ctx)
 	}
+
 	ctx.Log.Info().Msg("finished app services configuration")
 }
 
 // Init runs all app service initialization.
 func (ctx *AppContext) Init() {
 	ctx.Log.Info().Msg("starting app services initialization")
+
 	for _, service := range ctx.services {
 		service.Init()
 	}
+
 	ctx.Log.Info().Msg("finished app services initialization")
 }
 
 // Close cleans up any resources held by any app services.
 func (ctx *AppContext) Close() {
 	ctx.Log.Info().Msg("start closing app services")
+
 	for _, service := range ctx.services {
 		service.Close()
 	}
+
 	ctx.Log.Info().Msg("finished closing app services")
 }

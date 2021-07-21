@@ -48,11 +48,14 @@ func (ve FieldErrors) Error() string {
 		if err != "" {
 			err += ", "
 		}
+
 		err += fe.Field
 	}
+
 	if len(ve) == 1 {
 		return "field is invalid: " + err
 	}
+
 	return "fields are invalid: " + err
 }
 
@@ -144,6 +147,7 @@ func NewValidator(options ...Option) *Validator {
 	for _, option := range options {
 		option(val)
 	}
+
 	return val
 }
 
@@ -179,6 +183,7 @@ func (mv *Validator) Struct(value interface{}) error {
 	if len(errs) > 0 {
 		return errs
 	}
+
 	return nil
 }
 
@@ -196,10 +201,12 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 		if sv.IsNil() {
 			return nil
 		}
+
 		return mv.validateStruct(sv.Elem().Interface())
 	}
 
 	var result FieldErrors
+
 	fieldCount := sv.NumField()
 	for i := 0; i < fieldCount; i++ {
 		field := st.Field(i).Name
@@ -208,6 +215,7 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 		if !unicode.IsUpper(rune(field[0])) {
 			continue
 		}
+
 		f := sv.Field(i)
 
 		// deal with pointers
@@ -227,6 +235,7 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 				if result == nil {
 					result = make(FieldErrors, 0, 1)
 				}
+
 				result = append(result, err.(FieldError))
 			}
 		}
@@ -237,9 +246,11 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 			if result == nil {
 				result = make(FieldErrors, 0, len(errs))
 			}
+
 			result = append(result, errs...)
 		}
 	}
+
 	return result
 }
 
@@ -250,34 +261,42 @@ func (mv *Validator) deepValidateCollection(f reflect.Value, field string) Field
 			// Whenever nil value is passed there is nothing to validate further
 			return nil
 		}
+
 		fallthrough
 	case reflect.Struct:
 		if errs := mv.validateStruct(f.Interface()); errs != nil {
 			if !mv.fullErrorPath {
 				return errs
 			}
+
 			result := make(FieldErrors, 0, len(errs))
+
 			for _, err := range errs {
 				result = append(result, FieldError{
 					Field:       field + "." + err.Field,
 					Description: err.Description,
 				})
 			}
+
 			return result
 		}
 	case reflect.Array, reflect.Slice:
 		var result FieldErrors
+
 		for i := 0; i < f.Len(); i++ {
 			if errs := mv.deepValidateCollection(f.Index(i), field+"["+string(rune(i))+"]"); errs != nil {
 				if result == nil {
 					result = FieldErrors{}
 				}
+
 				result = append(result, errs...)
 			}
 		}
+
 		return result
 	case reflect.Map:
 		var result FieldErrors
+
 		for _, key := range f.MapKeys() {
 			// validate the map key
 			errs := mv.deepValidateCollection(key, fmt.Sprintf("%s[%+v](key)", field, key.Interface()))
@@ -285,21 +304,26 @@ func (mv *Validator) deepValidateCollection(f reflect.Value, field string) Field
 				if result == nil {
 					result = FieldErrors{}
 				}
+
 				result = append(result, errs...)
 			}
 
 			// validate the map value
 			value := f.MapIndex(key)
+
 			errs = mv.deepValidateCollection(value, fmt.Sprintf("%s[%+v](value)", field, key.Interface()))
 			if errs != nil {
 				if result == nil {
 					result = FieldErrors{}
 				}
+
 				result = append(result, errs...)
 			}
 		}
+
 		return result
 	}
+
 	return nil
 }
 
@@ -315,21 +339,25 @@ func (mv *Validator) Field(val interface{}, field string, tags string) error {
 	if tags == "-" {
 		return nil
 	}
+
 	v := reflect.ValueOf(val)
 	if v.Kind() == reflect.Ptr && !v.IsNil() {
 		return mv.Field(v.Elem().Interface(), field, tags)
 	}
+
 	var err error
+
 	switch v.Kind() {
 	case reflect.Invalid:
 		err = mv.singleField(nil, field, tags)
 	default:
 		err = mv.singleField(val, field, tags)
 	}
+
 	return err
 }
 
-// singleField validates one single variable
+// singleField validates one single variable.
 func (mv *Validator) singleField(v interface{}, field string, tag string) error {
 	tags := mv.mustParseTags(tag)
 	for _, t := range tags {
@@ -346,6 +374,7 @@ func (mv *Validator) singleField(v interface{}, field string, tag string) error 
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -356,17 +385,21 @@ func (mv *Validator) singleField(v interface{}, field string, tag string) error 
 // instead.
 func Fields(errs ...error) error {
 	var result FieldErrors
+
 	for _, err := range errs {
 		if err != nil {
 			if result == nil {
 				result = make([]FieldError, 0)
 			}
+
 			result = append(result, err.(FieldError))
 		}
 	}
+
 	if len(result) == 0 {
 		return nil
 	}
+
 	return result
 }
 
@@ -382,19 +415,24 @@ func (mv *Validator) mustParseTags(t string) []Tag {
 	if val, ok := tagCache.Load(t); ok {
 		return val.([]Tag)
 	}
+
 	tl := splitUnescapedComma(t)
 	tags := make([]Tag, 0, len(tl))
+
 	for _, i := range tl {
 		i = strings.Replace(i, `\,`, ",", -1)
 		tg := Tag{}
 		v := strings.SplitN(i, "=", 2)
 		tg.Name = strings.Trim(v[0], " ")
+
 		if tg.Name == "" {
 			panic(fmt.Sprintf("unknown %s tag %q", mv.tagName, tg.Name))
 		}
+
 		if len(v) > 1 {
 			tg.Param = strings.Trim(v[1], " ")
 		}
+
 		var found bool
 		if tg.Rule, found = mv.rules[tg.Name]; !found {
 			if val, ok := mv.tagAliases[tg.Name]; ok {
@@ -406,7 +444,9 @@ func (mv *Validator) mustParseTags(t string) []Tag {
 			tags = append(tags, tg)
 		}
 	}
+
 	tagCache.Store(t, tags)
+
 	return tags
 }
 
@@ -414,10 +454,13 @@ func splitUnescapedComma(str string) []string {
 	indexes := sepPattern.FindAllStringIndex(str, -1)
 	pieces := make([]string, 0)
 	last := 0
+
 	for _, is := range indexes {
 		pieces = append(pieces, str[last:is[1]-1])
 		last = is[1]
 	}
+
 	pieces = append(pieces, str[last:])
+
 	return pieces
 }

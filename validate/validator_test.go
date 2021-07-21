@@ -1,6 +1,7 @@
 package validate_test
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -35,8 +36,6 @@ type requiredStruct struct {
 }
 
 func TestStruct_Required(t *testing.T) {
-	t.Parallel()
-
 	tests := []string{
 		"String",
 		"Slice", "Map",
@@ -50,6 +49,7 @@ func TestStruct_Required(t *testing.T) {
 
 	errs := validate.Struct(&requiredStruct{}).(validate.FieldErrors)
 	assert.Len(t, errs, len(tests))
+
 	for _, err := range errs {
 		assert.Contains(t, tests, err.Field)
 		assert.Equal(t, err.Field+" is required", err.Description)
@@ -61,7 +61,6 @@ type simpleStruct struct {
 }
 
 func TestStruct_SingleError(t *testing.T) {
-	t.Parallel()
 	v := validate.NewValidator(validate.WithStandardRules())
 
 	errs := v.Struct(&simpleStruct{})
@@ -84,7 +83,6 @@ type complexStruct struct {
 }
 
 func TestStruct_MultipleErrors(t *testing.T) {
-	t.Parallel()
 	v := validate.NewValidator(validate.WithFullErrorPath(), validate.WithStandardRules())
 
 	errs := v.Struct(&complexStruct{})
@@ -94,7 +92,6 @@ func TestStruct_MultipleErrors(t *testing.T) {
 }
 
 func TestStruct_WithoutFullErrorPath(t *testing.T) {
-	t.Parallel()
 	errs := validate.Struct(&complexStruct{})
 
 	assert.Len(t, errs, 5)
@@ -102,7 +99,6 @@ func TestStruct_WithoutFullErrorPath(t *testing.T) {
 }
 
 func TestField_Required(t *testing.T) {
-	t.Parallel()
 	err := validate.Field("", "Name", "required").(validate.FieldError)
 
 	assert.Equal(t, "field is invalid: Name", err.Error())
@@ -111,7 +107,6 @@ func TestField_Required(t *testing.T) {
 }
 
 func TestField_Optional(t *testing.T) {
-	t.Parallel()
 	err := validate.Field("", "Name", "optional,lte=3")
 
 	assert.Nil(t, err)
@@ -130,7 +125,6 @@ var fakeValidUser = &fakeUser{
 }
 
 func TestFields_Valid(t *testing.T) {
-	t.Parallel()
 	assert.True(t, fakeValidUser.Validate() == nil)
 }
 
@@ -140,15 +134,12 @@ var fakeInvalidUser = &fakeUser{
 }
 
 func TestFields_Invalid(t *testing.T) {
-	t.Parallel()
 	errs := fakeInvalidUser.Validate().(validate.FieldErrors)
 
 	assert.Len(t, errs, 2)
 }
 
 func TestGTE(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		test  interface{}
 		error string
@@ -177,8 +168,6 @@ func TestGTE(t *testing.T) {
 }
 
 func TestLTE(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		test  interface{}
 		error string
@@ -255,8 +244,6 @@ var (
 )
 
 func TestRules(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		user   interface{}
 		errors map[string]string
@@ -410,7 +397,9 @@ func TestRules(t *testing.T) {
 			assert.Nil(t, errs, fmt.Sprintf("failed validation for %+v", tt.user))
 		} else {
 			for field, desc := range tt.errors {
-				err := findError(errs.(validate.FieldErrors), field)
+				var fieldErrors validate.FieldErrors
+				errors.As(errs, &fieldErrors)
+				err := findError(fieldErrors, field)
 				assert.NotNil(t, err, "failed "+field+" validation")
 				assert.Equal(t, desc, err.Description)
 			}
@@ -424,12 +413,11 @@ func findError(errs validate.FieldErrors, field string) validate.FieldError {
 			return err
 		}
 	}
+
 	panic(fmt.Sprintf("field %q not found", field))
 }
 
 func TestAliases(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		value interface{}
 		tag   string
@@ -456,14 +444,14 @@ func TestAliases(t *testing.T) {
 		if tt.error == "" {
 			assert.Nil(t, err)
 		} else {
-			assert.Equal(t, tt.error, err.(validate.FieldError).Description)
+			var fieldError validate.FieldError
+			assert.True(t, errors.As(err, &fieldError))
+			assert.Equal(t, tt.error, fieldError.Description)
 		}
 	}
 }
 
 func TestRules_InvalidTypes(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		value interface{}
 		tags  string

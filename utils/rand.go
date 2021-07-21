@@ -1,12 +1,12 @@
-package rand
+package utils
 
 import (
 	"crypto/rand"
 	"encoding/base64"
-
-	uuid "github.com/satori/go.uuid" // nolint
+	"fmt"
 
 	"github.com/mr-tron/base58"
+	uuid "github.com/satori/go.uuid" // nolint
 )
 
 // GenerateShortID returns a base58-encoded UUID which is 22
@@ -20,10 +20,10 @@ func GenerateShortID() string {
 // generator fails.
 func GenerateRandomBytes(n int) ([]byte, error) {
 	b := make([]byte, n)
-	_, err := rand.Read(b)
+
 	// Note that err == nil only if we read len(b) bytes.
-	if err != nil {
-		return nil, err
+	if _, err := rand.Read(b); err != nil {
+		return nil, fmt.Errorf("reading random bytes: %w", err)
 	}
 
 	return b, nil

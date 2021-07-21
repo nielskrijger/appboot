@@ -48,13 +48,16 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer func() {
 		err := db.Close()
 		if err != nil {
 			panic(err)
 		}
 	}()
+
 	p := &postgres.Postgres{}
+
 	driver, err := p.Open(dsn)
 	if err != nil {
 		panic(err)
@@ -69,7 +72,9 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
 	if err != nil {
 		panic(err)
 	}
+
 	m.Log = &contextLogger
+
 	err = m.Up()
 	if err != nil {
 		if err == migrate.ErrNoChange {

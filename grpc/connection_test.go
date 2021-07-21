@@ -1,14 +1,15 @@
-package grpc
+package grpc_test
 
 import (
 	"testing"
 
+	"github.com/nielskrijger/goboot/grpc"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/connectivity"
 )
 
 func TestNewGrpcConnection_Success(t *testing.T) {
-	conn := NewGrpcConnection(&ServiceConfig{
+	conn := grpc.NewGrpcConnection(&grpc.ServiceConfig{
 		Address: "test:50051",
 	})
 
@@ -17,9 +18,9 @@ func TestNewGrpcConnection_Success(t *testing.T) {
 }
 
 func TestNewGrpcConnection_WithTLSSuccess(t *testing.T) {
-	conn := NewGrpcConnection(&ServiceConfig{
+	conn := grpc.NewGrpcConnection(&grpc.ServiceConfig{
 		Address: "test:50051",
-		TLS: &TLSConfig{
+		TLS: &grpc.TLSConfig{
 			Enable: true,
 		},
 	})

@@ -41,24 +41,29 @@ func NewTemplateLoader(dir string) *Loader {
 func (t *Loader) LoadAllTemplates() (map[string]*template.Template, error) {
 	files, err := os.ReadDir(t.Dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dir %q: %w", t.Dir, err)
+		return nil, fmt.Errorf("reading dir %q: %w", t.Dir, err)
 	}
 
 	tmpls := make(map[string]*template.Template)
+
 	for _, f := range files {
 		tmplName := strings.TrimSuffix(f.Name(), filepath.Ext(f.Name()))
+
 		info, err := f.Info()
 		if err != nil {
-			return nil, fmt.Errorf("failed to read file info %q: %w", f.Name(), err)
+			return nil, fmt.Errorf("reading file info of %q: %w", f.Name(), err)
 		}
+
 		if t.isTemplate(info) {
 			tmpl, err := t.LoadTemplate(tmplName)
 			if err != nil {
-				return nil, fmt.Errorf("failed to load templates: %w", err)
+				return nil, fmt.Errorf("loading template file %q: %w", tmplName, err)
 			}
+
 			tmpls[tmplName] = tmpl
 		}
 	}
+
 	return tmpls, nil
 }
 
@@ -69,6 +74,7 @@ func (t *Loader) LoadTemplate(templateName string) (*template.Template, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return template.Must(template.New(templateName).Funcs(sprig.FuncMap()).ParseFiles(fs...)), nil
 }
 
@@ -77,7 +83,7 @@ func (t *Loader) LoadTemplate(templateName string) (*template.Template, error) {
 func (t *Loader) getTemplateFileNames(templateName string) ([]string, error) {
 	templatePath := t.Dir + "/" + templateName + t.Suffix
 	if _, err := os.Stat(templatePath); err != nil {
-		return nil, fmt.Errorf("template file not found: %w", err)
+		return nil, fmt.Errorf("reading template file info of %q: %w", templatePath, err)
 	}
 
 	fs := make([]string, 0)
@@ -88,6 +94,7 @@ func (t *Loader) getTemplateFileNames(templateName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	fs = append(fs, filenames...)
 
 	// Load layouts
@@ -95,6 +102,7 @@ func (t *Loader) getTemplateFileNames(templateName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	fs = append(fs, layouts...)
 
 	return fs, nil
@@ -102,19 +110,23 @@ func (t *Loader) getTemplateFileNames(templateName string) ([]string, error) {
 
 func (t *Loader) dirFilenames(dir string) ([]string, error) {
 	fs := make([]string, 0)
+
 	partials, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dir %q: %w", dir, err)
+		return nil, fmt.Errorf("reading dir %q: %w", dir, err)
 	}
+
 	for _, f := range partials {
 		info, err := f.Info()
 		if err != nil {
-			return nil, fmt.Errorf("failed to read file info %q: %w", f.Name(), err)
+			return nil, fmt.Errorf("reading file info of %q: %w", f.Name(), err)
 		}
+
 		if t.isTemplate(info) {
 			fs = append(fs, dir+"/"+f.Name())
 		}
 	}
+
 	return fs, nil
 }
 

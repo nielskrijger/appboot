@@ -46,10 +46,12 @@ type Service struct {
 
 func (s *Service) Configure(ctx *context.AppContext) {
 	s.log = ctx.Log
+
 	redisConf := &Config{}
 	if err := ctx.Config.Sub("redis").Unmarshal(redisConf); err != nil {
 		s.log.Panic().Err(err).Msg("failed parsing redis configuration")
 	}
+
 	s.log.Info().Msgf("connecting to redis %q, db %d", redisConf.URL, redisConf.DB)
 
 	opts := &redis.Options{
@@ -60,14 +62,17 @@ func (s *Service) Configure(ctx *context.AppContext) {
 	if redisConf.DialTimeout != 0 {
 		opts.DialTimeout = redisConf.DialTimeout
 	}
+
 	if redisConf.PoolSize != 0 {
 		opts.PoolSize = redisConf.PoolSize
 	}
+
 	s.Client = redis.NewClient(opts)
 
 	if redisConf.ConnectMaxRetries == 0 {
 		redisConf.ConnectMaxRetries = defaultConnectMaxRetries
 	}
+
 	if redisConf.ConnectRetryDuration == 0*time.Second {
 		redisConf.ConnectRetryDuration = defaultConnectRetryDuration
 	}
@@ -85,9 +90,11 @@ func (s *Service) Configure(ctx *context.AppContext) {
 			} else {
 				entry.Panic().Msgf("failed to connect to redis after %d retries", redisConf.ConnectMaxRetries)
 			}
+
 			time.Sleep(redisConf.ConnectRetryDuration)
 		} else {
 			s.log.Info().Msg("successfully connected to redis")
+
 			break
 		}
 	}

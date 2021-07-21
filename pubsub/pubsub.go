@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrClosed = errors.New("pubsub service has been closed")
+	ErrClosed = errors.New("pubsub Service has been closed")
 
 	// defaultDeadLetterName is the name used to identity the dead letter channel
 	// if no other name was defined.
@@ -24,7 +24,7 @@ var (
 )
 
 // Service adds some utility methods to the Google cloud
-// service such ensuring a topic and subscription exists and
+// Service such ensuring a topic and subscription exists and
 // deadlettering.
 //
 // It represents subscriptions and topics as a single message Channel
@@ -48,7 +48,7 @@ type Service struct {
 // The RichMessage primarily helps handling retryable and unrecoverable errors.
 type RichMessage struct {
 	*gpubsub.Message
-	service *Service
+	Service *Service
 	Channel *Channel
 }
 
@@ -85,6 +85,7 @@ func WithChannel(ch *Channel) func(*Service) {
 		if ch.MaxRetryAge == 0 {
 			ch.MaxRetryAge = time.Minute * 2
 		}
+
 		cl.addChannel(ch)
 	}
 }
@@ -109,6 +110,7 @@ func WithDeadLetter(ch *Channel) func(*Service) {
 		if ch.ID == "" {
 			ch.ID = defaultDeadLetterName
 		}
+
 		cl.addChannel(ch)
 		cl.DeadLetterChannel = ch
 	}
@@ -131,11 +133,11 @@ func (s *Service) Configure(appctx *appcontext.AppContext) {
 		option(s)
 	}
 
-	ctx := context.Background()
-	client, err := gpubsub.NewClient(ctx, s.projectID)
+	client, err := gpubsub.NewClient(context.Background(), s.projectID)
 	if err != nil {
 		s.log.Panic().Err(err).Msg("failed to connect to gcloud pubsub")
 	}
+
 	s.log.Info().Msgf("connected to %s pubsub", s.projectID)
 	s.Client = client
 }
@@ -154,12 +156,14 @@ func (s *Service) CreateAll() error {
 		if err := s.EnsureTopic(ch.TopicID); err != nil {
 			return err
 		}
+
 		if ch.SubscriptionID != "" {
 			if err := s.EnsureSubscription(ch.TopicID, ch.SubscriptionID); err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -179,12 +183,12 @@ func (s *Service) Init() {
 }
 
 // Close implements the context.AppService interface and releases any resources
-// held by the pubsub service such as memory and goroutines.
+// held by the pubsub Service such as memory and goroutines.
 func (s *Service) Close() {
 	if err := s.Client.Close(); err != nil {
-		s.log.Error().Err(err).Msg("failed closing pubsub service gracefully")
+		s.log.Error().Err(err).Msg("failed closing pubsub Service gracefully")
 	} else {
-		s.log.Info().Msg("stopped pubsub service")
+		s.log.Info().Msg("stopped pubsub Service")
 	}
 }
 
@@ -198,7 +202,7 @@ func (s *Service) Close() {
 //
 // The method returns an error if neither neither ACKing or NACKing is possible.
 func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
-	if msg.service.DeadLetterChannel == nil {
+	if msg.Service.DeadLetterChannel == nil {
 		return errors.New("no deadletter channel configured")
 	}
 
@@ -207,10 +211,12 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 	for k, v := range msg.Attributes {
 		newMap[k] = v
 	}
+
 	newMap["originalMessageID"] = msg.ID
 	newMap["originalTopicID"] = msg.Channel.TopicID
 	newMap["originalSubscriptionID"] = msg.Channel.SubscriptionID
 	newMap["error"] = trimLeftBytes(cause.Error(), 1024) // max attribute length is 1024 bytes
+
 	if val, ok := newMap["deadLetterCount"]; ok {
 		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
 			newMap["deadLetterCount"] = strconv.FormatInt(i+1, 10)
@@ -220,7 +226,7 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 	}
 
 	// Publish message to dead letter topic
-	topic := msg.service.Topic(msg.service.DeadLetterChannel.TopicID)
+	topic := msg.Service.Topic(msg.Service.DeadLetterChannel.TopicID)
 	_, err := topic.Publish(ctx, &gpubsub.Message{
 		Data:       msg.Data,
 		Attributes: newMap,
@@ -228,9 +234,12 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 	// When successful ACK, if unsuccessful NACK
 	if err != nil {
 		msg.Nack()
+
 		return errors.Wrapf(err, "failed to sent message to dead letter topic %q", topic)
 	}
+
 	msg.Ack()
+
 	return nil
 }
 
@@ -240,7 +249,7 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 // Messages will be redelivered automatically if not ACKed or NACKed in time.
 func (msg *RichMessage) TryDeadLetter(ctx context.Context, cause error) {
 	if err := msg.DeadLetter(ctx, cause); err != nil {
-		msg.service.log.Error().Err(err).Msg("failed to send message to dead letter queue")
+		msg.Service.log.Error().Err(err).Msg("failed to send message to dead letter queue")
 	}
 }
 
@@ -255,6 +264,7 @@ func (msg *RichMessage) RetryableError(ctx context.Context, cause error) error {
 
 	// In all other cases NACK and let pubsub do a retry
 	msg.Nack()
+
 	return nil
 }
 
@@ -264,7 +274,7 @@ func (msg *RichMessage) RetryableError(ctx context.Context, cause error) error {
 // Messages will be redelivered automatically if not ACKed or NACKed in time.
 func (msg *RichMessage) TryRetryableError(ctx context.Context, cause error) {
 	if err := msg.RetryableError(ctx, cause); err != nil {
-		msg.service.log.Error().Err(err).Msg("failed processing retryable error")
+		msg.Service.log.Error().Err(err).Msg("failed processing retryable error")
 	}
 }
 
@@ -272,8 +282,11 @@ func (msg *RichMessage) TryRetryableError(ctx context.Context, cause error) {
 // In most cases you should use CreateAll instead.
 func (s *Service) EnsureTopic(topicID string) error {
 	s.log.Info().Msgf("ensure topic %q exists", topicID)
+
 	ctx := context.Background()
-	if exists, err := s.Topic(topicID).Exists(ctx); err != nil {
+
+	exists, err := s.Topic(topicID).Exists(ctx)
+	if err != nil {
 		return err
 	} else if !exists {
 		if _, err := s.CreateTopic(ctx, topicID); err != nil {
@@ -283,6 +296,7 @@ func (s *Service) EnsureTopic(topicID string) error {
 	} else {
 		s.log.Info().Msgf("topic %q already exists", topicID)
 	}
+
 	return nil
 }
 
@@ -303,8 +317,11 @@ func (s *Service) MustEnsureTopic(topicID string) {
 // message must be ACK'ed or NACK'ed within 10 seconds or else it will be re-delivered.
 func (s *Service) EnsureSubscription(topicID string, subID string) error {
 	ctx := context.Background()
+
 	s.log.Info().Msgf("ensure subscription %q for topic %q exists", subID, topicID)
-	if exists, err := s.Subscription(subID).Exists(ctx); err != nil {
+
+	exists, err := s.Subscription(subID).Exists(ctx)
+	if err != nil {
 		return err
 	} else if !exists {
 		_, err := s.CreateSubscription(ctx, subID, gpubsub.SubscriptionConfig{
@@ -313,12 +330,15 @@ func (s *Service) EnsureSubscription(topicID string, subID string) error {
 		})
 		if err != nil {
 			s.log.Panic().Err(err).Msg("failed creating subscription")
+
 			return err
 		}
+
 		s.log.Info().Msgf("created new subscription %q on topic %q", subID, topicID)
 	} else {
 		s.log.Info().Msgf("subscription %q for topic %q already exists", subID, topicID)
 	}
+
 	return nil
 }
 
@@ -338,6 +358,7 @@ func (s *Service) DeleteAll() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -352,8 +373,10 @@ func translateError(err error, wrapMsg string, args ...interface{}) error {
 		if !ok || st.Code() == codes.Canceled {
 			return ErrClosed
 		}
+
 		return errors.Wrapf(err, wrapMsg, args...)
 	}
+
 	return nil
 }
 
@@ -368,6 +391,7 @@ func (s *Service) DeleteChannel(channel string) error {
 	if ch.SubscriptionID != "" {
 		ctx := context.Background()
 		sub := s.Subscription(ch.SubscriptionID)
+
 		if exists, err := sub.Exists(ctx); err != nil {
 			return translateError(err, "failed to retrieve subscription %q", ch.SubscriptionID)
 		} else if exists {
@@ -380,6 +404,7 @@ func (s *Service) DeleteChannel(channel string) error {
 
 	ctx := context.Background()
 	topic := s.Topic(ch.TopicID)
+
 	if exists, err := topic.Exists(ctx); err != nil {
 		return translateError(err, "failed to retrieve topic %q", ch.TopicID)
 	} else if exists {
@@ -388,6 +413,7 @@ func (s *Service) DeleteChannel(channel string) error {
 		}
 		s.log.Info().Msgf("deleted topic %q", ch.TopicID)
 	}
+
 	return nil
 }
 
@@ -400,6 +426,7 @@ func (s *Service) Receive(ctx context.Context, channel string, f func(context.Co
 	if ch == nil {
 		return errors.Errorf("channel %q not found", channel)
 	}
+
 	if ch.SubscriptionID == "" {
 		return errors.Errorf("channel %q does not have a subscription", channel)
 	}
@@ -407,10 +434,11 @@ func (s *Service) Receive(ctx context.Context, channel string, f func(context.Co
 	err := s.Subscription(ch.SubscriptionID).Receive(ctx, func(ctx2 context.Context, msg *gpubsub.Message) {
 		f(ctx2, &RichMessage{
 			Message: msg,
-			service: s,
+			Service: s,
 			Channel: ch,
 		})
 	})
+
 	return translateError(err, "receiving message from subscription %q failed", ch.SubscriptionID)
 }
 
@@ -427,12 +455,13 @@ func (s *Service) ReceiveNr(ctx context.Context, channel string, nrOfMessages in
 	cctx, cancel := context.WithCancel(ctx)
 
 	var msgs []*RichMessage
+
 	err := sub.Receive(cctx, func(ctx context.Context, msg *gpubsub.Message) {
 		msg.Ack()
 		msgs = append(msgs, &RichMessage{
 			Message: msg,
 			Channel: ch,
-			service: s,
+			Service: s,
 		})
 		if len(msgs) >= nrOfMessages {
 			cancel()
@@ -441,6 +470,7 @@ func (s *Service) ReceiveNr(ctx context.Context, channel string, nrOfMessages in
 	if err != nil {
 		return nil, translateError(err, "receiving message from subscription %q failed", ch.SubscriptionID)
 	}
+
 	return msgs, nil
 }
 
@@ -461,6 +491,7 @@ func (s *Service) PublishEvent(ctx context.Context, channel string, eventName st
 	}
 
 	t := s.Topic(ch.TopicID)
+
 	_, err = t.Publish(ctx, &gpubsub.Message{
 		Data: bytes,
 		Attributes: map[string]string{
@@ -470,6 +501,7 @@ func (s *Service) PublishEvent(ctx context.Context, channel string, eventName st
 	if err != nil {
 		return translateError(err, "could not publish event %q to t %q", eventName, ch.TopicID)
 	}
+
 	return nil
 }
 
@@ -499,5 +531,6 @@ func trimLeftBytes(str string, maxBytes int) string {
 	for lastRune > 0 && !utf8.RuneStart(str[lastRune]) {
 		lastRune--
 	}
+
 	return res[:lastRune]
 }

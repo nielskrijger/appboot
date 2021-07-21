@@ -1,7 +1,6 @@
 PKGS := $(shell go list ./...)
 
-lint: # Ignore installation recommendations and always download latest version of golangci-lint
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.31.0
+lint:
 	golangci-lint run
 
 test:

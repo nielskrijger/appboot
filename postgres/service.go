@@ -58,7 +58,7 @@ type healtcheckResult struct {
 	Result int
 }
 
-// configurePostgres connects to postgres and logs connection info for
+// Configure connects to postgres and logs connection info for
 // debugging connectivity issues.
 func (s *Service) Configure(ctx *context.AppContext) {
 	s.log = ctx.Log
@@ -69,9 +69,11 @@ func (s *Service) Configure(ctx *context.AppContext) {
 	if err := ctx.Config.Sub("postgres").Unmarshal(s.Config); err != nil {
 		s.log.Panic().Err(err).Msg("failed parsing redis configuration")
 	}
+
 	if s.Config.ConnectMaxRetries == 0 {
 		s.Config.ConnectMaxRetries = defaultConnectMaxRetries
 	}
+
 	if s.Config.ConnectRetryDuration == 0*time.Second {
 		s.Config.ConnectRetryDuration = defaultConnectRetryDuration
 	}
@@ -91,6 +93,7 @@ func (s *Service) connect() {
 	if err != nil {
 		s.log.Panic().Err(err).Msg("invalid postgres dsn")
 	}
+
 	logURL.User = url.UserPassword(logURL.User.Username(), "REDACTED")
 	s.log.Info().Msgf("connecting to %s", logURL.String())
 
@@ -99,6 +102,7 @@ func (s *Service) connect() {
 	if err != nil {
 		s.log.Panic().Err(err).Msg("could not parse postgres DSN")
 	}
+
 	pgOptions.DialTimeout = time.Duration(s.Config.ConnectTimeout) * time.Second
 
 	for retries := 1; ; retries++ {
@@ -112,6 +116,7 @@ func (s *Service) connect() {
 			} else {
 				subLog.Panic().Msgf("failed to connect to postgres after %d retries", s.Config.ConnectMaxRetries)
 			}
+
 			time.Sleep(s.Config.ConnectRetryDuration)
 		} else {
 			s.log.Info().Msg("successfully connected to postgres")
@@ -125,6 +130,7 @@ func (s *Service) Init() {
 	if err != nil {
 		s.log.Panic().Err(err).Msg("invalid dsn")
 	}
+
 	q := u.Query()
 	q.Set("connect_timeout", strconv.Itoa(s.Config.ConnectTimeout))
 	u.RawQuery = q.Encode()

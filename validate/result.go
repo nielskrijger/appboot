@@ -10,11 +10,13 @@ type ValidationResult struct {
 // Use a ValidationResult to dynamically compose a set of validation errors.
 func NewResult(errs ...error) *ValidationResult {
 	result := &ValidationResult{}
+
 	for _, err := range errs {
 		if err != nil {
 			result.AddError(err)
 		}
 	}
+
 	return result
 }
 
@@ -28,6 +30,7 @@ func (r *ValidationResult) Err() error {
 	if r.IsValid() {
 		return nil
 	}
+
 	return r.Errors
 }
 
@@ -35,6 +38,7 @@ func (r *ValidationResult) Error() string {
 	if r.IsValid() {
 		return ""
 	}
+
 	return r.Errors.Error()
 }
 
