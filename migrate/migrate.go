@@ -7,8 +7,12 @@ import (
 
 	"github.com/golang-migrate/migrate/v4" //nolint
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file" // Load file-loader for migration files
-	_ "github.com/lib/pq"                                // Required dependency for postgres driver
+
+	// Load file-loader for migration files.
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	// Required dependency for postgres driver.
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
@@ -21,12 +25,12 @@ type logger struct {
 	logger zerolog.Logger
 }
 
-// Printf is like fmt.Printf
+// Printf is like fmt.Printf.
 func (log *logger) Printf(format string, v ...interface{}) {
 	log.logger.Info().Msgf(format, v...)
 }
 
-// Verbose should return true when verbose logging output is wanted
+// Verbose should return true when verbose logging output is wanted.
 func (log *logger) Verbose() bool {
 	return true
 }

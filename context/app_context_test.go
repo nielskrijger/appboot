@@ -3,9 +3,8 @@ package context_test
 import (
 	"testing"
 
-	"github.com/nielskrijger/goboot/utils"
-
 	"github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot/utils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

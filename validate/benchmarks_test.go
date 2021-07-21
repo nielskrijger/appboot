@@ -1,8 +1,8 @@
 package validate_test
 
 import (
-	"github.com/nielskrijger/goboot/validate"
 	"testing"
+
 )
 
 func BenchmarkFields_Valid(b *testing.B) {

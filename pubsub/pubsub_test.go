@@ -8,11 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nielskrijger/goboot/utils"
-
-	"github.com/nielskrijger/goboot/pubsub"
-
 	appcontext "github.com/nielskrijger/goboot/context"
+	"github.com/nielskrijger/goboot/pubsub"
+	"github.com/nielskrijger/goboot/utils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )

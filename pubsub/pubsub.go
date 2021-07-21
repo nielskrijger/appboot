@@ -29,7 +29,7 @@ var (
 // deadlettering.
 //
 // It represents subscriptions and topics as a single message Channel
-// as from an application perspective
+// as from an application perspective.
 type Service struct {
 	*gpubsub.Client
 
@@ -477,7 +477,7 @@ func (s *Service) ReceiveNr(ctx context.Context, channel string, nrOfMessages in
 // on the server.
 //
 // Google's pubsub batching is disabled by default which is only useful in very high-throughput
-// use cases
+// use cases.
 func (s *Service) PublishEvent(ctx context.Context, channel string, eventName string, payload interface{}) error {
 	ch := s.Channels[channel]
 	if ch == nil {

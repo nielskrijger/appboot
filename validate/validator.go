@@ -29,7 +29,7 @@ import (
 
 var (
 	// ErrUnsupported is the error error returned when a validation rule
-	// is used with an unsupported variable type
+	// is used with an unsupported variable type.
 	ErrUnsupported = errors.New("unsupported type")
 
 	tagCache   = sync.Map{}
