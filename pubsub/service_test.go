@@ -58,14 +58,14 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) (*pubsub.Service, *
 	testLogger := &utils.TestLogger{}
 	appctx.Log = zerolog.New(testLogger)
 
-	s.Configure(appctx)
+	assert.Nil(t, s.Configure(appctx))
 
 	// Recreate all topics and subscriptions for each test
 	if err := s.DeleteAll(); err != nil {
 		panic(err)
 	}
 
-	s.Init()
+	assert.Nil(t, s.Init())
 
 	return s, testLogger
 }
@@ -113,7 +113,7 @@ func TestReceiveAll_ChannelDoesNotExist(t *testing.T) {
 
 func TestReceiveAll_ContextClosed(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
-	s.Close()
+	assert.Nil(t, s.Close())
 
 	ctx := context.Background()
 	_, err := s.ReceiveNr(ctx, "test-channel", 1)
@@ -198,7 +198,7 @@ func TestDeleteChannel_ChannelDoesNotExist(t *testing.T) {
 
 func TestDeleteChannel_ServiceClosed(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
-	s.Close()
+	assert.Nil(t, s.Close())
 
 	err := s.DeleteChannel("test-channel")
 
@@ -207,7 +207,7 @@ func TestDeleteChannel_ServiceClosed(t *testing.T) {
 
 func TestDeleteAll_ServiceClosed(t *testing.T) {
 	s, _ := newPubSubEmulatorService(t, false)
-	s.Close()
+	assert.Nil(t, s.Close())
 
 	err := s.DeleteAll()
 
@@ -215,12 +215,9 @@ func TestDeleteAll_ServiceClosed(t *testing.T) {
 }
 
 func TestTryClose_LogErrorOnFailure(t *testing.T) {
-	s, logs := newPubSubEmulatorService(t, false)
-	s.Close()
-	s.Close() // Closing it a second time should log an error
-
-	lines := logs.Lines()
-	assert.Equal(t, "failed closing pubsub Service gracefully", lines[len(lines)-1]["message"])
+	s, _ := newPubSubEmulatorService(t, false)
+	assert.Nil(t, s.Close())
+	assert.EqualError(t, s.Close(), "pubsub publisher closing error: rpc error: code = Canceled desc = grpc: the client connection is closing")
 }
 
 func TestDeadLetter_Success(t *testing.T) {

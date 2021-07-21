@@ -129,9 +129,13 @@ func NewPubSubService(projectID string, options ...Option) *Service {
 	}
 }
 
+func (s *Service) Name() string {
+	return "pubsub"
+}
+
 // Configure implements the context.AppService interface and instantiates
 // the client connection to gcloud pubsub.
-func (s *Service) Configure(appctx *appcontext.AppContext) {
+func (s *Service) Configure(appctx *appcontext.AppContext) error {
 	s.log = appctx.Log
 	for _, option := range s.options {
 		option(s)
@@ -139,11 +143,13 @@ func (s *Service) Configure(appctx *appcontext.AppContext) {
 
 	client, err := gpubsub.NewClient(context.Background(), s.projectID)
 	if err != nil {
-		s.log.Panic().Err(err).Msg("failed to connect to gcloud pubsub")
+		return fmt.Errorf("connecting to gcloud pubsub: %w", err)
 	}
 
 	s.log.Info().Msgf("connected to %s pubsub", s.projectID)
 	s.Client = client
+
+	return nil
 }
 
 func (s *Service) addChannel(ch *Channel) {
@@ -171,29 +177,16 @@ func (s *Service) CreateAll() error {
 	return nil
 }
 
-// MustCreateAll is the same as CreateAll but logs any error and exits
-// the program.
-func (s *Service) MustCreateAll() {
-	if err := s.CreateAll(); err != nil {
-		s.log.Fatal().Err(err).Msg("failed creating pubsub resources")
-	}
-}
-
 // Init implements the context.AppService interface and executes the MustCreateAll
 // method.
-func (s *Service) Init() {
+func (s *Service) Init() error {
 	s.log.Info().Msg("ensuring all google pubsub topics & subscriptions exist")
-	s.MustCreateAll()
+	return s.CreateAll()
 }
 
-// Close implements the context.AppService interface and releases any resources
-// held by the pubsub Service such as memory and goroutines.
-func (s *Service) Close() {
-	if err := s.Client.Close(); err != nil {
-		s.log.Error().Err(err).Msg("failed closing pubsub Service gracefully")
-	} else {
-		s.log.Info().Msg("stopped pubsub Service")
-	}
+// Close releases any resources held by the pubsub Service such as memory and goroutines.
+func (s *Service) Close() error {
+	return s.Client.Close()
 }
 
 // DeadLetter publishes a copy of a message to the deadletter channel and ACK's
@@ -306,14 +299,6 @@ func (s *Service) EnsureTopic(topicID string) error {
 	return nil
 }
 
-// MustEnsureTopic is the same as EnsureTopic but logs any error and
-// exits the program if an error occurred.
-func (s *Service) MustEnsureTopic(topicID string) {
-	if err := s.EnsureTopic(topicID); err != nil {
-		s.log.Fatal().Err(err).Msgf("failed to create topic %q", topicID)
-	}
-}
-
 // EnsureSubscription creates a subscription for specified topic. The topic
 // must already exist.
 //
@@ -345,14 +330,6 @@ func (s *Service) EnsureSubscription(topicID string, subID string) error {
 	}
 
 	return nil
-}
-
-// MustEnsureSubscription is the same as EnsureSubscription but logs any error and
-// exits the program if an error occurred.
-func (s *Service) MustEnsureSubscription(topicID string, subID string) {
-	if err := s.EnsureSubscription(topicID, subID); err != nil {
-		s.log.Fatal().Err(err).Msgf("failed to create subscription %q for topic %q", subID, topicID)
-	}
 }
 
 // DeleteAll deletes all topics and subscriptions of all configured channels,

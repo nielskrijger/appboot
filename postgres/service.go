@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 	"strconv"
 	"time"
@@ -15,6 +17,8 @@ const (
 	defaultConnectMaxRetries    = 5
 	defaultConnectRetryDuration = 5 * time.Second
 )
+
+var errMissingConfig = errors.New("missing postgres configuration")
 
 type Config struct {
 	// DSN contains hostname:port, e.g. localhost:6379
@@ -58,16 +62,25 @@ type healtcheckResult struct {
 	Result int
 }
 
+func (s *Service) Name() string {
+	return "postgres"
+}
+
 // Configure connects to postgres and logs connection info for
 // debugging connectivity issues.
-func (s *Service) Configure(ctx *context.AppContext) {
+func (s *Service) Configure(ctx *context.AppContext) error {
 	s.log = ctx.Log
 	s.confDir = ctx.ConfDir
 
 	// unmarshal config and set defaults
 	s.Config = &Config{}
-	if err := ctx.Config.Sub("postgres").Unmarshal(s.Config); err != nil {
-		s.log.Panic().Err(err).Msg("failed parsing redis configuration")
+
+	if !ctx.Config.InConfig("postgres") {
+		return errMissingConfig
+	}
+
+	if err := ctx.Config.Sub("postgres").UnmarshalExact(s.Config); err != nil {
+		return fmt.Errorf("failed parsing postgres configuration: %w", err)
 	}
 
 	if s.Config.ConnectMaxRetries == 0 {
@@ -79,19 +92,23 @@ func (s *Service) Configure(ctx *context.AppContext) {
 	}
 
 	// log dsn for debugging purposes
-	s.connect()
+	if err := s.connect(); err != nil {
+		return err
+	}
 
 	// print SQL queries when debug logging is on
 	if ctx.Log.Debug().Enabled() {
 		s.DB.AddQueryHook(&dbLogger{log: s.log})
 	}
+
+	return nil
 }
 
-func (s *Service) connect() {
+func (s *Service) connect() error {
 	// parse url for logging purposes
 	logURL, err := url.Parse(s.Config.DSN)
 	if err != nil {
-		s.log.Panic().Err(err).Msg("invalid postgres dsn")
+		return fmt.Errorf("invalid postgres dsn: %w", err)
 	}
 
 	logURL.User = url.UserPassword(logURL.User.Username(), "REDACTED")
@@ -100,7 +117,7 @@ func (s *Service) connect() {
 	// parse
 	pgOptions, err := pg.ParseURL(s.Config.DSN)
 	if err != nil {
-		s.log.Panic().Err(err).Msg("could not parse postgres DSN")
+		return fmt.Errorf("could not parse postgres DSN: %w", err)
 	}
 
 	pgOptions.DialTimeout = time.Duration(s.Config.ConnectTimeout) * time.Second
@@ -110,11 +127,19 @@ func (s *Service) connect() {
 
 		// test connection
 		if _, err := s.DB.Query(&healtcheckResult{}, "SELECT 1 AS result"); err != nil {
-			subLog := s.log.With().Err(err).Str("url", logURL.String()).Logger()
 			if retries < s.Config.ConnectMaxRetries {
-				subLog.Warn().Msgf("failed to connect to postgres, retrying in %s", s.Config.ConnectRetryDuration)
+				s.log.
+					Warn().
+					Err(err).
+					Str("url", logURL.String()).
+					Msgf("failed to connect to postgres, retrying in %s", s.Config.ConnectRetryDuration)
 			} else {
-				subLog.Panic().Msgf("failed to connect to postgres after %d retries", s.Config.ConnectMaxRetries)
+				return fmt.Errorf(
+					"failed to connect to postgres %q after %d retries: %w",
+					logURL.String(),
+					s.Config.ConnectMaxRetries,
+					err,
+				)
 			}
 
 			time.Sleep(s.Config.ConnectRetryDuration)
@@ -124,22 +149,22 @@ func (s *Service) connect() {
 			break
 		}
 	}
+
+	return nil
 }
 
-func (s *Service) Init() {
+func (s *Service) Init() error {
 	u, err := url.Parse(s.Config.DSN)
 	if err != nil {
-		s.log.Panic().Err(err).Msg("invalid dsn")
+		return fmt.Errorf("invalid postgres dsn: %w", err)
 	}
 
 	q := u.Query()
 	q.Set("connect_timeout", strconv.Itoa(s.Config.ConnectTimeout))
 	u.RawQuery = q.Encode()
-	migrate.MustMigrate(s.log, u.String(), s.confDir+"/migrations")
+	return migrate.MustMigrate(s.log, u.String(), s.confDir+"/migrations")
 }
 
-func (s *Service) Close() {
-	if err := s.DB.Close(); err != nil {
-		s.log.Error().Err(err).Msg("failed closing postgres connection gracefully")
-	}
+func (s *Service) Close() error {
+	return s.DB.Close()
 }

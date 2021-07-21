@@ -18,4 +18,7 @@ dep:
 bench:
 	go test $(PKGS) -bench=. -benchmem
 
-.PHONY: lint test integration coverage dep bench
+mock: # Generate new mocks for all interfaces within this package, see https://github.com/vektra/mockery
+	mockery --recursive --name=AppService
+
+.PHONY: lint test integration coverage dep bench mock

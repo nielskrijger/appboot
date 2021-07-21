@@ -1,6 +1,8 @@
 package redis
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -12,6 +14,8 @@ const (
 	defaultConnectMaxRetries    = 5
 	defaultConnectRetryDuration = 5 * time.Second
 )
+
+var errMissingConfig = errors.New("missing redis configuration")
 
 type Config struct {
 	// Url contains hostname:port, e.g. localhost:6379
@@ -44,12 +48,20 @@ type Service struct {
 	log zerolog.Logger
 }
 
-func (s *Service) Configure(ctx *context.AppContext) {
+func (s *Service) Name() string {
+	return "redis"
+}
+
+func (s *Service) Configure(ctx *context.AppContext) error {
 	s.log = ctx.Log
 
 	redisConf := &Config{}
+	if !ctx.Config.InConfig("redis") {
+		return errMissingConfig
+	}
+
 	if err := ctx.Config.Sub("redis").Unmarshal(redisConf); err != nil {
-		s.log.Panic().Err(err).Msg("failed parsing redis configuration")
+		return fmt.Errorf("parsing redis configuration: %w", err)
 	}
 
 	s.log.Info().Msgf("connecting to redis %q, db %d", redisConf.URL, redisConf.DB)
@@ -79,16 +91,18 @@ func (s *Service) Configure(ctx *context.AppContext) {
 
 	for retries := 1; ; retries++ {
 		if err := s.Client.Ping().Err(); err != nil {
-			entry := s.log.
-				With().
-				Err(err).
-				Str("url", redisConf.URL).
-				Int("db", redisConf.DB).
-				Logger()
 			if retries < redisConf.ConnectMaxRetries {
-				entry.Warn().Msgf("failed to connect to redis, retrying in %s", redisConf.ConnectRetryDuration)
+				s.log.Warn().
+					Err(err).
+					Str("url", redisConf.URL).
+					Int("db", redisConf.DB).
+					Msgf("failed to connect to redis, retrying in %s", redisConf.ConnectRetryDuration)
 			} else {
-				entry.Panic().Msgf("failed to connect to redis after %d retries", redisConf.ConnectMaxRetries)
+				return fmt.Errorf(
+					"failed to connect to redis after %d retries: %w",
+					redisConf.ConnectMaxRetries,
+					err,
+				)
 			}
 
 			time.Sleep(redisConf.ConnectRetryDuration)
@@ -98,14 +112,16 @@ func (s *Service) Configure(ctx *context.AppContext) {
 			break
 		}
 	}
+
+	return nil
 }
 
 // Init implements AppService interface.
-func (s *Service) Init() {}
+func (s *Service) Init() error {
+	return nil
+}
 
 // Close is run right before shutdown. The app waits until close resolves.
-func (s *Service) Close() {
-	if err := s.Client.Close(); err != nil {
-		s.log.Error().Err(err).Msg("failed closing redis connection gracefully")
-	}
+func (s *Service) Close() error {
+	return s.Client.Close()
 }

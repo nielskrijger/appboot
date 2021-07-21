@@ -38,12 +38,12 @@ func (log *logger) Verbose() bool {
 // MustMigrate runs Postgres migration files from specified migrations directory.
 //
 // Panics if anything went wrong.
-func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
+func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) error {
 	contextLogger := logger{logger: log}
 
 	dir, err := filepath.Abs(migrationsDir)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	contextLogger.Printf("running database migrations from %s", dir)
@@ -51,7 +51,7 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	defer func() {
@@ -65,7 +65,7 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
 
 	driver, err := p.Open(dsn)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// run migrations
@@ -75,7 +75,7 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
 		driver,
 	)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	m.Log = &contextLogger
@@ -85,9 +85,11 @@ func MustMigrate(log zerolog.Logger, dsn string, migrationsDir string) {
 		if errors.Is(err, migrate.ErrNoChange) {
 			contextLogger.Printf("database is up-to-date")
 		} else {
-			panic(err)
+			return err
 		}
 	} else {
 		contextLogger.Printf("completed database migrations")
 	}
+
+	return nil
 }
