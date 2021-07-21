@@ -14,7 +14,7 @@ func TestService_Success(t *testing.T) {
 	}
 
 	s := &redis.Service{}
-	s.Configure(context.NewAppContext("../test/conf", "redis"))
+	s.Configure(context.NewAppContext("../testdata/conf", "redis"))
 	s.Init()
 
 	assert.Equal(t, "Redis<0.0.0.0:6379 db:3>", s.Client.String())
@@ -27,6 +27,6 @@ func TestService_ErrorOnConnect(t *testing.T) {
 
 	assert.Panics(t, func() {
 		s := &redis.Service{}
-		s.Configure(context.NewAppContext("../test/conf", "redis-invalid"))
+		s.Configure(context.NewAppContext("../testdata/conf", "redis-invalid"))
 	})
 }

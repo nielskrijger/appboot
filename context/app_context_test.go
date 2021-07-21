@@ -28,7 +28,7 @@ func (m *appServiceMock) Init() {
 }
 
 func TestAppContext_Logger(t *testing.T) {
-	ctx := context.NewAppContext("../test/conf", "test")
+	ctx := context.NewAppContext("../testdata/conf", "testdata")
 	testLogger := &utils.TestLogger{}
 	ctx.Log = zerolog.New(testLogger)
 
@@ -46,7 +46,7 @@ func TestAppContext_Configure(t *testing.T) {
 	serviceMock1 := &appServiceMock{}
 	serviceMock2 := &appServiceMock{}
 
-	ctx := context.NewAppContext("../test/conf", "postgres")
+	ctx := context.NewAppContext("../testdata/conf", "postgres")
 	serviceMock1.On("Configure", ctx).Return()
 	serviceMock2.On("Configure", ctx).Return()
 
@@ -66,7 +66,7 @@ func TestAppContext_Init(t *testing.T) {
 	serviceMock2 := &appServiceMock{}
 	serviceMock2.On("Init").Return()
 
-	ctx := context.NewAppContext("../test/conf", "postgres")
+	ctx := context.NewAppContext("../testdata/conf", "postgres")
 
 	ctx.AddService(serviceMock1)
 	ctx.AddService(serviceMock2)
@@ -84,7 +84,7 @@ func TestAppContext_Close(t *testing.T) {
 	serviceMock2 := &appServiceMock{}
 	serviceMock2.On("Close").Return()
 
-	ctx := context.NewAppContext("../test/conf", "postgres")
+	ctx := context.NewAppContext("../testdata/conf", "postgres")
 	ctx.AddService(serviceMock1)
 	ctx.AddService(serviceMock2)
 

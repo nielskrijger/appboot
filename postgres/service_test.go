@@ -14,7 +14,7 @@ func TestService_Success(t *testing.T) {
 	}
 
 	s := &postgres.Service{}
-	s.Configure(context.NewAppContext("../test/conf", "postgres"))
+	s.Configure(context.NewAppContext("../testdata/conf", "postgres"))
 	s.Init()
 	s.Close()
 }
@@ -26,7 +26,7 @@ func TestService_ErrorOnConnect(t *testing.T) {
 
 	assert.Panics(t, func() {
 		s := &postgres.Service{}
-		s.Configure(context.NewAppContext("../test/conf", "postgres-invalid"))
+		s.Configure(context.NewAppContext("../testdata/conf", "postgres-invalid"))
 		s.Init()
 	})
 }
