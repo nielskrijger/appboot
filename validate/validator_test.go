@@ -143,6 +143,7 @@ func TestFields_Invalid(t *testing.T) {
 	errs := fakeInvalidUser.Validate()
 
 	var fieldErrors validate.FieldErrors
+
 	assert.ErrorAs(t, errs, &fieldErrors)
 	assert.Len(t, fieldErrors, 2)
 }

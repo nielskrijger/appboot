@@ -237,8 +237,8 @@ func (mv *Validator) validateStruct(value interface{}) FieldErrors {
 				}
 
 				var fieldError FieldError
-				errors.As(err, &fieldError)
 
+				errors.As(err, &fieldError)
 				result = append(result, fieldError)
 			}
 		}
@@ -396,8 +396,8 @@ func Fields(errs ...error) error {
 			}
 
 			var fieldError FieldError
-			errors.As(err, &fieldError)
 
+			errors.As(err, &fieldError)
 			result = append(result, fieldError)
 		}
 	}

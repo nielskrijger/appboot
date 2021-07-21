@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -287,10 +288,10 @@ func (s *Service) EnsureTopic(topicID string) error {
 
 	exists, err := s.Topic(topicID).Exists(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking if topic %s exists: %w", topicID, err)
 	} else if !exists {
 		if _, err := s.CreateTopic(ctx, topicID); err != nil {
-			return err
+			return fmt.Errorf("creating topic %s: %w", topicID, err)
 		}
 		s.log.Info().Msgf("created new topic %q", topicID)
 	} else {
@@ -322,16 +323,14 @@ func (s *Service) EnsureSubscription(topicID string, subID string) error {
 
 	exists, err := s.Subscription(subID).Exists(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking if subscriptions %s exists: %w", subID, err)
 	} else if !exists {
 		_, err := s.CreateSubscription(ctx, subID, gpubsub.SubscriptionConfig{
 			Topic:       s.Topic(topicID),
 			AckDeadline: 10 * time.Second,
 		})
 		if err != nil {
-			s.log.Panic().Err(err).Msg("failed creating subscription")
-
-			return err
+			return fmt.Errorf("creating subscription %s: %w", subID, err)
 		}
 
 		s.log.Info().Msgf("created new subscription %q on topic %q", subID, topicID)

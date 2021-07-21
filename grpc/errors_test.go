@@ -52,9 +52,11 @@ func TestValidationResult_SingleFieldErrors(t *testing.T) {
 	r := status.Convert(err)
 	assert.Equal(t, "field is invalid: A", r.Message())
 	assert.Equal(t, codes.InvalidArgument, r.Code())
-	detail := r.Details()[0].(*errdetails.BadRequest)
-	assert.Equal(t, "A", detail.FieldViolations[0].Field)
-	assert.Equal(t, "Message A", detail.FieldViolations[0].Description)
+
+	details, ok := r.Details()[0].(*errdetails.BadRequest)
+	assert.True(t, ok, "details type is invalid")
+	assert.Equal(t, "A", details.FieldViolations[0].Field)
+	assert.Equal(t, "Message A", details.FieldViolations[0].Description)
 }
 
 func TestValidationResult_MultipleFieldErrors(t *testing.T) {
@@ -67,11 +69,13 @@ func TestValidationResult_MultipleFieldErrors(t *testing.T) {
 	r := status.Convert(err)
 	assert.Equal(t, "fields are invalid: A, B", r.Message())
 	assert.Equal(t, codes.InvalidArgument, r.Code())
-	detail := r.Details()[0].(*errdetails.BadRequest)
-	assert.Equal(t, "A", detail.FieldViolations[0].Field)
-	assert.Equal(t, "Message A", detail.FieldViolations[0].Description)
-	assert.Equal(t, "B", detail.FieldViolations[1].Field)
-	assert.Equal(t, "Message B", detail.FieldViolations[1].Description)
+
+	details, ok := r.Details()[0].(*errdetails.BadRequest)
+	assert.True(t, ok, "details type is invalid")
+	assert.Equal(t, "A", details.FieldViolations[0].Field)
+	assert.Equal(t, "Message A", details.FieldViolations[0].Description)
+	assert.Equal(t, "B", details.FieldViolations[1].Field)
+	assert.Equal(t, "Message B", details.FieldViolations[1].Description)
 }
 
 func TestValidationError_Empty(t *testing.T) {
@@ -96,7 +100,9 @@ func TestValidationError_Success(t *testing.T) {
 	r := status.Convert(err)
 	assert.Equal(t, "field is invalid: A", r.Message())
 	assert.Equal(t, codes.InvalidArgument, r.Code())
-	detail := r.Details()[0].(*errdetails.BadRequest)
-	assert.Equal(t, "A", detail.FieldViolations[0].Field)
-	assert.Equal(t, "Message A", detail.FieldViolations[0].Description)
+
+	details, ok := r.Details()[0].(*errdetails.BadRequest)
+	assert.True(t, ok, "details type is invalid")
+	assert.Equal(t, "A", details.FieldViolations[0].Field)
+	assert.Equal(t, "Message A", details.FieldViolations[0].Description)
 }

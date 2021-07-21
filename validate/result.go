@@ -47,6 +47,7 @@ func (r *ValidationResult) Error() string {
 // AddError adds an error to the ValidationResult.
 func (r *ValidationResult) AddError(err error) {
 	var fieldError FieldError
+
 	var fieldErrors FieldErrors
 
 	if errors.As(err, &fieldErrors) {

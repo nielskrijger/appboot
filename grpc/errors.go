@@ -1,3 +1,4 @@
+//nolint:wrapcheck
 package grpc
 
 import (
@@ -25,7 +26,7 @@ func ValidationErrors(err error) error {
 	var errs validate.FieldErrors
 	if !errors.As(err, &errs) {
 		// unexpected, interpret as internal server error
-		return status.New(codes.Internal, fmt.Errorf("unexpected error type: %w", err).Error()).Err()
+		return status.New(codes.Internal, fmt.Sprintf("unexpected error type: %s", err)).Err()
 	}
 
 	if len(errs) == 0 {
@@ -62,7 +63,7 @@ func ValidationError(err error) error {
 	var fieldErr validate.FieldError
 	if !errors.As(err, &fieldErr) {
 		// unexpected, interpret as internal server error
-		return status.New(codes.Internal, fmt.Errorf("unexpected error type: %w", err).Error()).Err()
+		return status.New(codes.Internal, fmt.Sprintf("unexpected error type: %s", err)).Err()
 	}
 
 	st := status.New(codes.InvalidArgument, fieldErr.Error())
