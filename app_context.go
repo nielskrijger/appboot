@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -21,7 +22,19 @@ func NewAppContext(confDir string, env string) *AppContext {
 	logger := newLogger()
 	logger.Info().Str("env", env).Msgf("starting server")
 
-	cfg := MustLoadConfig(logger, confDir, env)
+	cfg, err := LoadConfig(logger, confDir, env)
+	if err != nil {
+		log.Panic().Err(err).Msgf("failed loading app configs: %s", err.Error())
+	}
+
+	// Set log settings after we've loaded the config files
+	if level := cfg.GetString("log.level"); level != "" {
+		SetGlobalLogLevel(level)
+	}
+
+	if humanize := cfg.GetString("log.human"); humanize == "true" {
+		logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	}
 
 	return &AppContext{
 		ConfDir:  confDir,
@@ -35,20 +48,39 @@ func (ctx *AppContext) AddService(service AppService) {
 	ctx.Services = append(ctx.Services, service)
 }
 
-// newLogger returns a new zerolog logger.
+// newLogger configures a new zerolog logger.
 //
-// By default returns a production logger, to log on DEBUG level set en var LOG_DEBUG=true.
+// By default returns a production logger, to debug set env var LOG_LEVEL=debug and for
+// colorization set LOG_HUMAN=true.
+//
+// The LOG_* env vars can be defined in config files using "log.level" and "log.human"
+// but will only take affect after the config files are loaded while LOG_* will takes
+// immediate effect.
 func newLogger() zerolog.Logger {
 	// use env var instead of config because no config is available at startup
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	debug, ok := os.LookupEnv("LOG_DEBUG")
+	if level, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		SetGlobalLogLevel(level)
+	}
 
-	if ok && (debug == "true" || debug == "1") {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	human, ok := os.LookupEnv("LOG_HUMAN")
+
+	if ok && (human == "true") {
+		return log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
 	return zerolog.New(os.Stdout)
+}
+
+// SetGlobalLogLevel updates the log level, panics if log level is unknown.
+func SetGlobalLogLevel(level string) {
+	lvl, err := zerolog.ParseLevel(level)
+	if err != nil {
+		log.Panic().Err(err).Msgf("setting log level: %s", err.Error())
+	}
+
+	zerolog.SetGlobalLevel(lvl)
 }
 
 // Configure sets up service settings.

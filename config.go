@@ -1,6 +1,7 @@
 package goboot
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -8,36 +9,35 @@ import (
 	"github.com/spf13/viper"
 )
 
-// MustLoadConfig reads in a configuration files and environment variables in the following order
+// LoadConfig reads in configuration files and environment variables in the following order
 // of priority:
 //
-// 1. environment variables
-// 2. {path}/config.{env}.yaml
-// 3. {path}/config.yaml
+// 1. environment variables (optional)
+// 2. {path}/config.{env}.yaml (optional, but logs a warning if missing)
+// 3. {path}/config.yaml (mandatory)
 //
-// config.yaml is mandatory but config.{env}.yaml is not.
 // An config variable "var.sub_2: value" can be overwritten with an environment variable VAR_SUB_2.
-func MustLoadConfig(log zerolog.Logger, dir string, env string) *viper.Viper {
+func LoadConfig(log zerolog.Logger, dir string, env string) (*viper.Viper, error) {
 	v := viper.New()
 
 	// Load {path}/config.yaml
 	cfgDir, err := filepath.Abs(dir)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("opening config dir %q: %w", dir, err)
 	}
 
 	mainCfg := cfgDir + "/config.yaml"
 	v.SetConfigFile(mainCfg)
 
 	if err := v.ReadInConfig(); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("loading config %q: %w", mainCfg, err)
 	}
 
 	log.Info().Msgf("loaded configuration %q", mainCfg)
 
 	// Load {path}/config.{env}.yaml
-	config2 := cfgDir + "/config." + env + ".yaml"
-	v.SetConfigFile(config2)
+	envCfg := cfgDir + "/config." + env + ".yaml"
+	v.SetConfigFile(envCfg)
 
 	// Load environment variables
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -45,18 +45,18 @@ func MustLoadConfig(log zerolog.Logger, dir string, env string) *viper.Viper {
 
 	if err := v.MergeInConfig(); err != nil {
 		if strings.Contains(err.Error(), "no such file or directory") {
-			log.Info().Msgf("config file %q not found, skipping", config2)
+			log.Warn().Err(err).Msgf("config file %q not found, skipping", envCfg)
 		}
 	} else {
-		log.Info().Msgf("loaded configuration %q", config2)
+		log.Info().Msgf("loaded configuration %q", envCfg)
 	}
 
-	// Workaround because viper does not treat env vars the same as other config:
-	// https://github.com/spf13/viper/issues/188
+	// Viper ignores environment variables when unmarshalling if no defaults are set.
+	// This should that, see also https://github.com/spf13/viper/issues/188
 	for _, key := range v.AllKeys() {
 		val := v.Get(key)
 		v.Set(key, val)
 	}
 
-	return v
+	return v, nil
 }

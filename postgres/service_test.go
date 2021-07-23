@@ -19,11 +19,7 @@ func TestService_Success(t *testing.T) {
 	assert.Nil(t, s.Close())
 }
 
-func TestService_ErrorOnMisconfiguration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
+func TestService_ErrorMissingConfig(t *testing.T) {
 	s := &postgres.Service{}
 	err := s.Configure(goboot.NewAppContext("../testdata/conf", "empty"))
 	assert.EqualError(t, err, "missing postgres configuration")

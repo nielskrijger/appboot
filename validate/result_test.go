@@ -40,8 +40,8 @@ func TestValidationResult_AddErrors(t *testing.T) {
 
 	assert.False(t, res.IsValid())
 	assert.Len(t, res.Errors, 4)
-	assert.Equal(t, res.Errors[0], err1)
-	assert.Equal(t, res.Errors[1], err2)
-	assert.Equal(t, res.Errors[2], err1)
-	assert.Equal(t, res.Errors[3], err2)
+	assert.Equal(t, err1, res.Errors[0])
+	assert.Equal(t, err2, res.Errors[1])
+	assert.Equal(t, err1, res.Errors[2])
+	assert.Equal(t, err2, res.Errors[3])
 }

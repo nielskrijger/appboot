@@ -11,7 +11,7 @@ import (
 )
 
 func TestAppContext_Logger(t *testing.T) {
-	ctx := goboot.NewAppContext("./testdata/conf", "testdata")
+	ctx := goboot.NewAppContext("./testdata/conf", "")
 	testLogger := &utils.TestLogger{}
 	ctx.Log = zerolog.New(testLogger)
 

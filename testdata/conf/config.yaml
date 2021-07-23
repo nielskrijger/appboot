@@ -1,3 +1,6 @@
+log:
+  level: debug
+  human: true
 vars:
   filename: config.yaml
   foo: bar

@@ -1,3 +1,6 @@
+log:
+  level: warn
+  human: false
 vars:
   filename: config.prod.yaml
   prod_only_var: config.prod.yaml

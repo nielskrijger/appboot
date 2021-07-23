@@ -1,0 +1,5 @@
+elasticsearch:
+  username: elastic
+  password: invalid
+  addresses:
+    - http://localhost:9200

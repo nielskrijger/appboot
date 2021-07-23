@@ -79,7 +79,7 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 	}
 
 	if err := ctx.Config.Sub("postgres").UnmarshalExact(s.Config); err != nil {
-		return fmt.Errorf("failed parsing postgres configuration: %w", err)
+		return fmt.Errorf("parsing postgres configuration: %w", err)
 	}
 
 	if s.Config.ConnectMaxRetries == 0 {

@@ -1,14 +1,15 @@
 linters:
   enable-all: true
   disable:
-    - gochecknoglobals
-    - maligned
-    - scopelint
-    - paralleltest
-    - exhaustivestruct
+    - gochecknoglobals # usually just false positives
+    - maligned # deprecated
+    - scopelint # deprecated
+    - paralleltest # lots of code, little gain; prefer using t.Parallel() only for slow tests
+    - exhaustivestruct # just a pain, not too useful
+    - tagliatelle # restricts json/yaml formatting, not applicable in this app
 linters-settings:
   exhaustive:
-    default-signifies-exhaustive: true
+    default-signifies-exhaustive: true # enable "default"-case in switch as catch-all for all other options
 
 issues:
   # Maximum issues count per one linter. Set to 0 to disable. Default is 50.

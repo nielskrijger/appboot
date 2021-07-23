@@ -19,11 +19,7 @@ func TestService_Success(t *testing.T) {
 	assert.Equal(t, "Redis<0.0.0.0:6379 db:3>", s.Client.String())
 }
 
-func TestService_ErrorOnMisconfiguration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
+func TestService_ErrorMissingConfig(t *testing.T) {
 	s := &redis.Service{}
 	err := s.Configure(goboot.NewAppContext("../testdata/conf", "empty"))
 	assert.EqualError(t, err, "missing redis configuration")
