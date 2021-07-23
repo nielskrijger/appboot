@@ -1,6 +1,6 @@
 # goboot
 
-**WARNING: This is not intended for public use, nor is any versioning applied. So please be warned, things can suddenly break without warning. This project will have long periods of non-activity with short bursts of high activity based on my schedule, don't count on my support.**
+**WARNING: This is not intended for public use, nor is any versioning applied. So be warned: things can suddenly break between commits. This project will have long periods of non-activity with short bursts of high activity based on my schedule. Meaning: don't count on my support.**
 
 `goboot` instantiates an application context for web services. Its main purpose is to create an opinionated base for REST and gRPC services which I can easily upgrade and improve upon over time.
 
