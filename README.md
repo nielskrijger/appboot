@@ -26,7 +26,7 @@ It is not very likely the set of chosen libraries here would fit your project's 
 
 ## Development
 
-The repo contains a combination of integration and unit tests.
+This codebase contains a combination of integration and unit tests.
 
 To run all of them in a human-readable way use:
 
