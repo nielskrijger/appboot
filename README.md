@@ -10,7 +10,6 @@ Goals:
 - Panic when bootstrapping a service failed. We never to start a broken server.
 - Good logging and error reporting while bootstrapping. Debugging failed bootstrapping processes can be a pain.
 - Avoid higher-level dependencies in `goboot` such as web frameworks, routers, query-builder/ORM or similar.
-- Add common helpers to avoid copy-paste across projects.
 
 Non-goals:
 
