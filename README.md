@@ -9,12 +9,13 @@ Goals:
 - Easy and consistent service bootstrapping of services.
 - Panic when bootstrapping a service failed. We never to start a broken server.
 - Good logging and error reporting while bootstrapping. Debugging failed bootstrapping processes can be a pain.
-- Keep dependencies to the bare minimum. E.g. dont' add dpeendencies for a query-helper, ORM or similar.
+- Avoid higher-level dependencies in `goboot` such as web frameworks, routers, query-builder/ORM or similar.
+- Add common helpers to avoid copy-paste across projects.
 
 Non-goals:
 
-- The utils and services in this package are not an abstraction of underlying libraries but only aid in bootstrapping them.
-- There should be no loose-coupling with dependencies.
+- The utils and services in this package are not an abstraction of underlying libraries but only aid in bootstrapping or simplify using them.
+- No need for flexibility of underlying drivers, being tied to one specific version of a lib and/or datastore is OK.
 
 Given these goals & non-goals you'll find this codebase is strongly tied to:
 
