@@ -24,7 +24,7 @@ Given these goals & non-goals you'll find this codebase is strongly tied to:
 
 It is not very likely the set of chosen libraries here would fit your project's needs or preferences. It's designed to fit mine for the type of projects I'm currently working on.
 
-## development
+## Development
 
 The repo contains a combination of integration and unit tests.
 
