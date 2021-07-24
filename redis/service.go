@@ -15,7 +15,10 @@ const (
 	defaultConnectRetryDuration = 5 * time.Second
 )
 
-var errMissingConfig = errors.New("missing redis configuration")
+var (
+	errMissingConfig = errors.New("missing redis configuration")
+	errMissingURL    = errors.New("config \"redis.url\" is required")
+)
 
 type Config struct {
 	// Url contains hostname:port, e.g. localhost:6379
@@ -58,6 +61,10 @@ func (s *Service) Configure(ctx *goboot.AppContext) error { // nolint:funlen
 
 	if !ctx.Config.InConfig("redis") {
 		return errMissingConfig
+	}
+
+	if !ctx.Config.IsSet("redis.url") {
+		return errMissingURL
 	}
 
 	if err := ctx.Config.Sub("redis").Unmarshal(redisConf); err != nil {

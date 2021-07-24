@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"github.com/nielskrijger/goboot"
+	"github.com/nielskrijger/goboot/utils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConfig_LoadDefaultConfig(t *testing.T) {
-	cfg, err := goboot.LoadConfig(zerolog.Nop(), "./testdata/conf", "unknown")
+	cfg, err := goboot.LoadConfig(zerolog.Nop(), "./testdata", "")
 	assert.Nil(t, err)
 	assert.Equal(t, "config.yaml", cfg.GetString("vars.filename"))
 	assert.Equal(t, "bar", cfg.GetString("vars.foo"))
@@ -18,11 +19,30 @@ func TestConfig_LoadDefaultConfig(t *testing.T) {
 }
 
 func TestConfig_OverrideEnvConfig(t *testing.T) {
-	cfg, err := goboot.LoadConfig(zerolog.Nop(), "./testdata/conf", "prod")
+	cfg, err := goboot.LoadConfig(zerolog.Nop(), "./testdata", "prod")
 	assert.Nil(t, err)
 	assert.Equal(t, "config.prod.yaml", cfg.GetString("vars.filename"))
 	assert.Equal(t, "bar", cfg.GetString("vars.foo"))
 	assert.Equal(t, "config.prod.yaml", cfg.GetString("vars.prod_only_var"))
+}
+
+func TestConfig_LogEmptyEnv(t *testing.T) {
+	testLogger := &utils.TestLogger{}
+
+	_, err := goboot.LoadConfig(zerolog.New(testLogger), "./testdata", "")
+
+	assert.Nil(t, err)
+	assert.Equal(t, "environment variable ENV has not been set", testLogger.LastLine()["message"])
+	assert.Equal(t, "warn", testLogger.LastLine()["level"])
+}
+
+func TestConfig_ErrorInvalidEnv(t *testing.T) {
+	testLogger := &utils.TestLogger{}
+
+	_, err := goboot.LoadConfig(zerolog.New(testLogger), "./testdata", "unknown")
+
+	assert.Contains(t, err.Error(), "config file not found")
+	assert.Contains(t, err.Error(), "testdata/config.unknown.yaml")
 }
 
 type TestConfig struct {
@@ -32,7 +52,7 @@ type TestConfig struct {
 func TestConfig_OverrideEnvVariables(t *testing.T) {
 	_ = os.Setenv("VARS_FILENAME", "from-env")
 	_ = os.Setenv("VARS_PROD_ONLY_VAR", "from-env")
-	cfg, err := goboot.LoadConfig(zerolog.Nop(), "./testdata/conf", "prod")
+	cfg, err := goboot.LoadConfig(zerolog.Nop(), "./testdata", "prod")
 	assert.Nil(t, err)
 	assert.Equal(t, "from-env", cfg.GetString("vars.filename"))
 	assert.Equal(t, "from-env", cfg.GetString("vars.prod_only_var"))

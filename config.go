@@ -35,20 +35,26 @@ func LoadConfig(log zerolog.Logger, dir string, env string) (*viper.Viper, error
 
 	log.Info().Msgf("loaded configuration %q", mainCfg)
 
-	// Load {path}/config.{env}.yaml
-	envCfg := cfgDir + "/config." + env + ".yaml"
-	v.SetConfigFile(envCfg)
-
 	// Load environment variables
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	if err := v.MergeInConfig(); err != nil {
-		if strings.Contains(err.Error(), "no such file or directory") {
-			log.Warn().Err(err).Msgf("config file %q not found, skipping", envCfg)
+	// Load {path}/config.{env}.yaml
+	if env != "" {
+		envCfg := cfgDir + "/config." + env + ".yaml"
+		v.SetConfigFile(envCfg)
+
+		if err := v.MergeInConfig(); err != nil {
+			if strings.Contains(err.Error(), "no such file or directory") {
+				return nil, fmt.Errorf("config file not found: %q", envCfg)
+			} else {
+				return nil, fmt.Errorf("processing %q: %w", envCfg, err)
+			}
+		} else {
+			log.Info().Msgf("loaded configuration %q", envCfg)
 		}
 	} else {
-		log.Info().Msgf("loaded configuration %q", envCfg)
+		log.Warn().Msg("environment variable ENV has not been set")
 	}
 
 	// Viper ignores environment variables when unmarshalling if no defaults are set.

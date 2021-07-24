@@ -13,7 +13,10 @@ import (
 	"github.com/nielskrijger/goboot/utils"
 )
 
-var errMissingConfig = errors.New("missing elasticsearch configuration")
+var (
+	errMissingConfig    = errors.New("missing elasticsearch configuration")
+	errMissingAddresses = errors.New("config \"elasticsearch.addresses\" is required")
+)
 
 type Service struct {
 	*elasticsearch7.Client
@@ -38,6 +41,10 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 
 	if err := ctx.Config.Sub("elasticsearch").UnmarshalExact(&s.Config); err != nil {
 		return fmt.Errorf("parsing elasticsearch configuration: %w", err)
+	}
+
+	if len(s.Config.Addresses) == 0 {
+		return errMissingAddresses
 	}
 
 	// setup debug logging
@@ -66,7 +73,7 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 
 	res, err := es.Info()
 	if err != nil {
-		return fmt.Errorf("fetch elasticsearch config from server: %w", err)
+		return fmt.Errorf("fetch elasticsearch cluster info: %w", err)
 	}
 	defer utils.Close(ctx.Log, res.Body)
 

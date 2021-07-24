@@ -14,14 +14,20 @@ func TestService_Success(t *testing.T) {
 	}
 
 	s := &elasticsearch.Service{}
-	assert.Nil(t, s.Configure(goboot.NewAppContext("../testdata/conf", "elasticsearch")))
+	assert.Nil(t, s.Configure(goboot.NewAppContext("./testdata", "valid")))
 	assert.Nil(t, s.Init())
 }
 
 func TestService_ErrorMissingConfig(t *testing.T) {
 	s := &elasticsearch.Service{}
-	err := s.Configure(goboot.NewAppContext("../testdata/conf", "empty"))
+	err := s.Configure(goboot.NewAppContext("./testdata", ""))
 	assert.EqualError(t, err, "missing elasticsearch configuration")
+}
+
+func TestService_ErrorNoAddresses(t *testing.T) {
+	s := &elasticsearch.Service{}
+	err := s.Configure(goboot.NewAppContext("./testdata", "no-addresses"))
+	assert.EqualError(t, err, "config \"elasticsearch.addresses\" is required")
 }
 
 func TestService_ErrorOnConnect(t *testing.T) {
@@ -30,6 +36,6 @@ func TestService_ErrorOnConnect(t *testing.T) {
 	}
 
 	s := &elasticsearch.Service{}
-	err := s.Configure(goboot.NewAppContext("../testdata/conf", "elasticsearch-invalid"))
+	err := s.Configure(goboot.NewAppContext("./testdata", "invalid-password"))
 	assert.Contains(t, err.Error(), "expected 200 OK but got \"401 Unauthorized\" while retrieving elasticsearch info")
 }

@@ -17,7 +17,10 @@ const (
 	defaultConnectRetryDuration = 5 * time.Second
 )
 
-var errMissingConfig = errors.New("missing postgres configuration")
+var (
+	errMissingConfig = errors.New("missing postgres configuration")
+	errMissingDSN    = errors.New("config \"postgres.dsn\" is required")
+)
 
 type Config struct {
 	// DSN contains hostname:port, e.g. localhost:6379
@@ -78,7 +81,11 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 		return errMissingConfig
 	}
 
-	if err := ctx.Config.Sub("postgres").UnmarshalExact(s.Config); err != nil {
+	if !ctx.Config.IsSet("postgres.dsn") {
+		return errMissingDSN
+	}
+
+	if err := ctx.Config.Sub("postgres").Unmarshal(s.Config); err != nil {
 		return fmt.Errorf("parsing postgres configuration: %w", err)
 	}
 
@@ -157,6 +164,8 @@ func (s *Service) Init() error {
 	if err != nil {
 		return fmt.Errorf("invalid postgres dsn: %w", err)
 	}
+
+	s.log.Info().Msg(s.Config.DSN)
 
 	q := u.Query()
 	q.Set("connect_timeout", strconv.Itoa(s.Config.ConnectTimeout))

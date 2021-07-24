@@ -53,7 +53,7 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) *pubsub.Service {
 
 	// configure pubsub Service with appcontext
 	s := pubsub.NewPubSubService("metrix-io", opts...)
-	appctx := goboot.NewAppContext("../testdata/conf", "postgres-invalid")
+	appctx := goboot.NewAppContext("../testdata", "")
 
 	testLogger := &utils.TestLogger{}
 	appctx.Log = zerolog.New(testLogger)

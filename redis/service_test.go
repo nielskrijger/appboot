@@ -14,15 +14,21 @@ func TestService_Success(t *testing.T) {
 	}
 
 	s := &redis.Service{}
-	assert.Nil(t, s.Configure(goboot.NewAppContext("../testdata/conf", "redis")))
+	assert.Nil(t, s.Configure(goboot.NewAppContext("./testdata", "valid")))
 	assert.Nil(t, s.Init())
 	assert.Equal(t, "Redis<0.0.0.0:6379 db:3>", s.Client.String())
 }
 
 func TestService_ErrorMissingConfig(t *testing.T) {
 	s := &redis.Service{}
-	err := s.Configure(goboot.NewAppContext("../testdata/conf", "empty"))
+	err := s.Configure(goboot.NewAppContext("./testdata", ""))
 	assert.EqualError(t, err, "missing redis configuration")
+}
+
+func TestService_ErrorEmptyURL(t *testing.T) {
+	s := &redis.Service{}
+	err := s.Configure(goboot.NewAppContext("./testdata", "no-url"))
+	assert.EqualError(t, err, "config \"redis.url\" is required")
 }
 
 func TestService_ErrorOnConnect(t *testing.T) {
@@ -31,6 +37,6 @@ func TestService_ErrorOnConnect(t *testing.T) {
 	}
 
 	s := &redis.Service{}
-	err := s.Configure(goboot.NewAppContext("../testdata/conf", "redis-invalid"))
+	err := s.Configure(goboot.NewAppContext("./testdata", "invalid"))
 	assert.EqualError(t, err, "failed to connect to redis after 5 retries: dial tcp 1.2.3.4:6379: i/o timeout")
 }

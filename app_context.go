@@ -16,15 +16,16 @@ type AppContext struct {
 	Services []AppService
 }
 
-// NewAppContext creates an AppContext by loading configuration settings and
-// setting up common connections to databases and queues.
+// NewAppContext creates an AppContext by loading configuration settings.
+//
+// Panics if configuration failed to load.
 func NewAppContext(confDir string, env string) *AppContext {
 	logger := newLogger()
 	logger.Info().Str("env", env).Msgf("starting server")
 
 	cfg, err := LoadConfig(logger, confDir, env)
 	if err != nil {
-		log.Panic().Err(err).Msgf("failed loading app configs: %s", err.Error())
+		log.Panic().Err(err).Msgf("loading app configs: %s", err.Error())
 	}
 
 	// Set log settings after we've loaded the config files

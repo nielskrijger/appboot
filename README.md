@@ -22,7 +22,7 @@ Given these goals & non-goals you'll find this codebase is strongly tied to:
 - [Zerolog](https://github.com/rs/zerolog) for logging;
 - all packages (elasticsearch, grpc, postgres, pubsub, redis) depend on libraries and may only work for a specific version of db/protocol.
 
-It is not very likely the set of chosen libraries here would fit your project's needs or preferences. It's designed to fit mine for the type of projects I'm currently working on.
+It's quite likely the set of chosen libraries here would not fit your project's needs or personal preferences.
 
 ## Development
 
