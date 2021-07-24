@@ -55,9 +55,9 @@ func (s *Service) Name() string {
 	return "redis"
 }
 
-func (s *Service) Configure(ctx *goboot.AppContext) error { // nolint:funlen
+func (s *Service) Configure(ctx *goboot.AppContext) error {
 	s.log = ctx.Log
-	redisConf := &Config{}
+	redisCfg := &Config{}
 
 	if !ctx.Config.InConfig("redis") {
 		return errMissingConfig
@@ -67,52 +67,56 @@ func (s *Service) Configure(ctx *goboot.AppContext) error { // nolint:funlen
 		return errMissingURL
 	}
 
-	if err := ctx.Config.Sub("redis").Unmarshal(redisConf); err != nil {
+	if err := ctx.Config.Sub("redis").Unmarshal(redisCfg); err != nil {
 		return fmt.Errorf("parsing redis configuration: %w", err)
 	}
 
-	s.log.Info().Msgf("connecting to redis %q, db %d", redisConf.URL, redisConf.DB)
+	s.log.Info().Msgf("connecting to redis %q, db %d", redisCfg.URL, redisCfg.DB)
 
 	opts := &redis.Options{
-		Addr:     redisConf.URL,
-		Password: redisConf.Password,
-		DB:       redisConf.DB,
+		Addr:     redisCfg.URL,
+		Password: redisCfg.Password,
+		DB:       redisCfg.DB,
 	}
-	if redisConf.DialTimeout != 0 {
-		opts.DialTimeout = redisConf.DialTimeout
+	if redisCfg.DialTimeout != 0 {
+		opts.DialTimeout = redisCfg.DialTimeout
 	}
 
-	if redisConf.PoolSize != 0 {
-		opts.PoolSize = redisConf.PoolSize
+	if redisCfg.PoolSize != 0 {
+		opts.PoolSize = redisCfg.PoolSize
 	}
 
 	s.Client = redis.NewClient(opts)
 
-	if redisConf.ConnectMaxRetries == 0 {
-		redisConf.ConnectMaxRetries = defaultConnectMaxRetries
+	if redisCfg.ConnectMaxRetries == 0 {
+		redisCfg.ConnectMaxRetries = defaultConnectMaxRetries
 	}
 
-	if redisConf.ConnectRetryDuration == 0*time.Second {
-		redisConf.ConnectRetryDuration = defaultConnectRetryDuration
+	if redisCfg.ConnectRetryDuration == 0*time.Second {
+		redisCfg.ConnectRetryDuration = defaultConnectRetryDuration
 	}
 
+	return s.testConnectivity(redisCfg)
+}
+
+func (s *Service) testConnectivity(cfg *Config) error {
 	for retries := 1; ; retries++ {
 		if err := s.Client.Ping().Err(); err != nil {
-			if retries < redisConf.ConnectMaxRetries {
+			if retries < cfg.ConnectMaxRetries {
 				s.log.Warn().
 					Err(err).
-					Str("url", redisConf.URL).
-					Int("db", redisConf.DB).
-					Msgf("failed to connect to redis, retrying in %s", redisConf.ConnectRetryDuration)
+					Str("url", cfg.URL).
+					Int("db", cfg.DB).
+					Msgf("failed to connect to redis, retrying in %s", cfg.ConnectRetryDuration)
 			} else {
 				return fmt.Errorf(
 					"failed to connect to redis after %d retries: %w",
-					redisConf.ConnectMaxRetries,
+					cfg.ConnectMaxRetries,
 					err,
 				)
 			}
 
-			time.Sleep(redisConf.ConnectRetryDuration)
+			time.Sleep(cfg.ConnectRetryDuration)
 		} else {
 			s.log.Info().Msg("successfully connected to redis")
 

@@ -65,6 +65,10 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 		}
 	}
 
+	return s.testConnectivity(ctx)
+}
+
+func (s *Service) testConnectivity(ctx *goboot.AppContext) error {
 	// Start client
 	es, err := elasticsearch7.NewClient(*s.Config)
 	if err != nil {

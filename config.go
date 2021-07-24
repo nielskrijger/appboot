@@ -46,13 +46,13 @@ func LoadConfig(log zerolog.Logger, dir string, env string) (*viper.Viper, error
 
 		if err := v.MergeInConfig(); err != nil {
 			if strings.Contains(err.Error(), "no such file or directory") {
-				return nil, fmt.Errorf("config file not found: %q", envCfg)
-			} else {
-				return nil, fmt.Errorf("processing %q: %w", envCfg, err)
+				return nil, fmt.Errorf("config file not found %q: %w", envCfg, err)
 			}
-		} else {
-			log.Info().Msgf("loaded configuration %q", envCfg)
+
+			return nil, fmt.Errorf("processing %q: %w", envCfg, err)
 		}
+
+		log.Info().Msgf("loaded configuration %q", envCfg)
 	} else {
 		log.Warn().Msg("environment variable ENV has not been set")
 	}

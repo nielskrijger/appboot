@@ -97,8 +97,8 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 		s.Config.ConnectRetryDuration = defaultConnectRetryDuration
 	}
 
-	// log dsn for debugging purposes
-	if err := s.connect(); err != nil {
+	// check if we can connect to PostgreSQL
+	if err := s.testConnectivity(); err != nil {
 		return err
 	}
 
@@ -110,7 +110,7 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 	return nil
 }
 
-func (s *Service) connect() error {
+func (s *Service) testConnectivity() error {
 	// parse url for logging purposes
 	logURL, err := url.Parse(s.Config.DSN)
 	if err != nil {
