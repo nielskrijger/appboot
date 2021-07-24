@@ -7,8 +7,8 @@
 Goals:
 
 - Easy and consistent service bootstrapping of services.
-- Panic when bootstrapping a service failed. We never to start a broken server.
-- Good logging and error reporting while bootstrapping. Debugging failed bootstrapping processes can be a pain.
+- Panic when bootstrapping a service failed. We don't want to start a broken server.
+- Good logging and error reporting while bootstrapping. Debugging failed setup processes on infra can be a pain...
 - Avoid higher-level dependencies in `goboot` such as web frameworks, routers, query-builder/ORM or similar.
 
 Non-goals:
