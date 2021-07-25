@@ -16,6 +16,8 @@ func TestService_Success(t *testing.T) {
 	s := &elasticsearch.Service{}
 	assert.Nil(t, s.Configure(goboot.NewAppContext("./testdata", "valid")))
 	assert.Nil(t, s.Init())
+	assert.NotNil(t, s.Client)
+	assert.NotNil(t, s.Config)
 }
 
 func TestService_ErrorMissingConfig(t *testing.T) {

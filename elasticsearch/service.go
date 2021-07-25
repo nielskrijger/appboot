@@ -65,17 +65,19 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 		}
 	}
 
-	return s.testConnectivity(ctx)
-}
-
-func (s *Service) testConnectivity(ctx *goboot.AppContext) error {
 	// Start client
 	es, err := elasticsearch7.NewClient(*s.Config)
 	if err != nil {
 		return fmt.Errorf("creating elasticsearch client: %w", err)
 	}
 
-	res, err := es.Info()
+	s.Client = es
+
+	return s.testConnectivity(ctx)
+}
+
+func (s *Service) testConnectivity(ctx *goboot.AppContext) error {
+	res, err := s.Client.Info()
 	if err != nil {
 		return fmt.Errorf("fetch elasticsearch cluster info: %w", err)
 	}
