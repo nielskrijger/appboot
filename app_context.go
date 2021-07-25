@@ -86,7 +86,7 @@ func SetGlobalLogLevel(level string) {
 
 // Configure sets up service settings.
 func (ctx *AppContext) Configure() {
-	ctx.Log.Info().Msg("starting app services configuration")
+	ctx.Log.Info().Msg("starting configuring app services")
 
 	for _, service := range ctx.Services {
 		if err := service.Configure(ctx); err != nil {
@@ -94,12 +94,12 @@ func (ctx *AppContext) Configure() {
 		}
 	}
 
-	ctx.Log.Info().Msg("finished app services configuration")
+	ctx.Log.Info().Msg("finished configuring app services")
 }
 
 // Init runs all app service initialization.
 func (ctx *AppContext) Init() {
-	ctx.Log.Info().Msg("starting app services initialization")
+	ctx.Log.Info().Msg("starting app services init")
 
 	for _, service := range ctx.Services {
 		if err := service.Init(); err != nil {
@@ -107,7 +107,7 @@ func (ctx *AppContext) Init() {
 		}
 	}
 
-	ctx.Log.Info().Msg("finished app services initialization")
+	ctx.Log.Info().Msg("finished app services init")
 }
 
 // Close cleans up any resources held by any app services.

@@ -19,9 +19,9 @@ func TestAppContext_Logger(t *testing.T) {
 
 	entries := testLogger.Lines()
 	assert.Len(t, entries, 2)
-	assert.Equal(t, "starting app services configuration", entries[0]["message"])
+	assert.Equal(t, "starting configuring app services", entries[0]["message"])
 	assert.Equal(t, "info", entries[1]["level"])
-	assert.Equal(t, "finished app services configuration", entries[1]["message"])
+	assert.Equal(t, "finished configuring app services", entries[1]["message"])
 	assert.Equal(t, "info", entries[1]["level"])
 }
 
