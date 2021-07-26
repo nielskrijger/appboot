@@ -1,26 +1,26 @@
 # goboot
 
-**WARNING: This is not intended for public use, nor is any versioning applied. So be warned: things can suddenly break between commits. This project will have long periods of non-activity with short bursts of high activity based on my schedule. Meaning: don't count on my support.**
+**WARNING: This repo not intended for public use and has no versioning applied. So be warned: things can break between commits. This project will have long periods of non-activity with short bursts of high activity based on my schedule. Meaning: don't count on my support.**
 
-`goboot` instantiates an application context for web services. Its main purpose is to create an opinionated base for REST and gRPC services which I can easily upgrade and improve upon over time.
+`goboot` instantiates an application context for web services. Its main purpose is to create an opinionated base for REST and gRPC services.
 
 Goals:
 
-- Easy and consistent service bootstrapping of services.
-- Panic when bootstrapping a service failed. We don't want to start a broken server.
-- Good logging and error reporting while bootstrapping. Debugging failed setup processes on infra can be a pain...
+- Easy and consistent service bootstrapping of common services (databases, queues, etc).
+- Panic if bootstrapping a service failed. We don't want to start a broken server.
+- Good logging and error reporting while bootstrapping. Debugging broken boot procedures on infra can be a pain...
 - Avoid higher-level dependencies in `goboot` such as web frameworks, routers, query-builder/ORM or similar.
 
 Non-goals:
 
-- The utils and services in this package are not an abstraction of underlying libraries but only aid in bootstrapping or simplify using them.
+- The services in this package are not an abstraction of underlying libraries but only aid in bootstrapping or simplify using them.
 - No need for flexibility of underlying drivers, being tied to one specific version of a lib and/or datastore is OK.
 
 Given these goals & non-goals you'll find this codebase is strongly tied to:
 
 - [Viper](https://github.com/spf13/viper) for configuration management;
 - [Zerolog](https://github.com/rs/zerolog) for logging;
-- all packages (elasticsearch, grpc, postgres, pubsub, redis) depend on libraries and may only work for a specific version of db/protocol.
+- all packages (elasticsearch, postgres, pubsub, redis) depend on libraries and may only work for a specific version of db/protocol.
 
 It's quite likely the set of chosen libraries here would not fit your project's needs or personal preferences.
 
