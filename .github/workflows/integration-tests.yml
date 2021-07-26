@@ -8,6 +8,8 @@ jobs:
       - uses: actions/checkout@master
       - name: Build the docker-compose stack
         run: docker-compose up -d
+      - name: debug containers
+        run: docker ps -a
       - name: test
         uses: cedrickring/golang-action@1.7.0
         with:
