@@ -1,4 +1,4 @@
-name: tests
+name: Tests
 on: push
 jobs:
   tests:
@@ -6,11 +6,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: Build the docker-compose stack
+
+      - name: Start containers
         run: docker-compose up -d
+
       - name: debug containers
         run: docker ps -a
+
       - name: test
         uses: cedrickring/golang-action@1.7.0
         with:
           args: make integration
+
+      - name: Stop containers
+        if: always()
+        run: docker-compose down
