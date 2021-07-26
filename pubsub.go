@@ -228,14 +228,13 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 
 	// Publish message to dead letter topic
 	topic := msg.Service.Topic(msg.Service.DeadLetterChannel.TopicID)
+
 	_, err := topic.Publish(ctx, &pubsub.Message{
 		Data:       msg.Data,
 		Attributes: newMap,
 	}).Get(ctx)
-
-	// When successful ACK, if unsuccessful NACK
 	if err != nil {
-		msg.Nack()
+		msg.Nack() // if unsuccessful NACK
 
 		return errors.Wrapf(err, "failed to sent message to dead letter topic %q", topic)
 	}

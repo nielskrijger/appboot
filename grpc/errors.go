@@ -45,8 +45,7 @@ func ValidationErrors(err error) error {
 
 	st, err = st.WithDetails(br)
 	if err != nil {
-		// should never happen, so panic and figure out what happened
-		panic(fmt.Sprintf("failed creating invalid argument error: %v", err))
+		return status.New(codes.Internal, fmt.Sprintf("failed creating invalid argument error: %s", err)).Err()
 	}
 
 	return st.Err()
@@ -75,8 +74,7 @@ func ValidationError(err error) error {
 
 	st, err = st.WithDetails(br)
 	if err != nil {
-		// should never happen, so panic and figure out what happened
-		panic(fmt.Sprintf("failed creating invalid argument error: %v", err))
+		return status.New(codes.Internal, fmt.Sprintf("failed creating invalid argument error: %s", err)).Err()
 	}
 
 	return st.Err()

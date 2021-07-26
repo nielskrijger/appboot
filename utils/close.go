@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Close is a simple utility used to log any error message during deferred closing.
+// Close is a simple utility used to log error messages riased during a deferred closing function.
 // For example:
 //
 //    defer utils.Close(myLog, f)
