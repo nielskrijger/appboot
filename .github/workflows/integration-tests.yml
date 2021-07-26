@@ -10,13 +10,16 @@ jobs:
       - name: Start containers
         run: docker-compose up -d
 
-      - name: debug containers
+      - name: Check container status
         run: docker ps -a
 
-      - name: test
-        uses: cedrickring/golang-action@1.7.0
+      - name: Install go
+        uses: actions/setup-go@v2
         with:
-          args: make integration
+          go-version: '^1.16.0'
+
+      - name: Run tests
+        run: make integration
 
       - name: Stop containers
         if: always()
