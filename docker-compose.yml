@@ -3,7 +3,6 @@ version: "3.7"
 # these are all services needed for the integration tests
 services:
   postgres:
-    network_mode: host
     image: postgres:11
     environment:
       - POSTGRES_USER=postgres
@@ -11,9 +10,10 @@ services:
       - POSTGRES_DB=utils
     volumes:
       - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   elasticsearch:
-    network_mode: host
     image: docker.elastic.co/elasticsearch/elasticsearch:7.12.0
     environment:
       - bootstrap.memory_lock=true
@@ -27,14 +27,18 @@ services:
         hard: -1
     volumes:
       - esdata:/var/lib/elasticsearch/data
+    ports:
+      - 9200:9200
 
   pubsub:
-    network_mode: host
     image: knarz/pubsub-emulator
+    ports:
+      - "8085:8085"
 
   redis:
-    network_mode: host
     image: redis:alpine
+    ports:
+      - "6379:6379"
     command: >
       --requirepass secret
 
