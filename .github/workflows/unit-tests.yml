@@ -2,11 +2,11 @@ name: unit tests
 on: push
 jobs:
   tests:
-    name: test
+    name: Run unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - name: test
-        uses: cedrickring/golang-action@1.6.0
+        uses: cedrickring/golang-action
         with:
           args: make test

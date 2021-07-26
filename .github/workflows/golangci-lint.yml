@@ -2,7 +2,7 @@ name: golangci-lint
 on: push
 jobs:
   golangci:
-    name: lint
+    name: Run linter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
