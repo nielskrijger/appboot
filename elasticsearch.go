@@ -1,4 +1,4 @@
-package elasticsearch
+package goboot
 
 import (
 	"encoding/json"
@@ -9,34 +9,33 @@ import (
 
 	elasticsearch7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/estransport"
-	"github.com/nielskrijger/goboot"
 	"github.com/nielskrijger/goboot/utils"
 )
 
 var (
-	errMissingConfig    = errors.New("missing elasticsearch configuration")
-	errMissingAddresses = errors.New("config \"elasticsearch.addresses\" is required")
+	errMissingElasticsearchConfig    = errors.New("missing elasticsearch configuration")
+	errMissingElasticsearchAddresses = errors.New("config \"elasticsearch.addresses\" is required")
 )
 
-type Service struct {
+type ESClusterInfo struct {
+	ClusterName string `json:"cluster_name"`
+}
+
+type ElasticSearch struct {
 	*elasticsearch7.Client
 	*elasticsearch7.Config
 }
 
-func (s *Service) Name() string {
+func (s *ElasticSearch) Name() string {
 	return "elasticsearch"
 }
 
-type ClusterInfo struct {
-	ClusterName string `json:"cluster_name"`
-}
-
-func (s *Service) Configure(ctx *goboot.AppContext) error {
+func (s *ElasticSearch) Configure(ctx *AppContext) error {
 	// unmarshal config and set defaults
 	s.Config = &elasticsearch7.Config{}
 
 	if !ctx.Config.InConfig("elasticsearch") {
-		return errMissingConfig
+		return errMissingElasticsearchConfig
 	}
 
 	if err := ctx.Config.Sub("elasticsearch").UnmarshalExact(&s.Config); err != nil {
@@ -44,7 +43,7 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 	}
 
 	if len(s.Config.Addresses) == 0 {
-		return errMissingAddresses
+		return errMissingElasticsearchAddresses
 	}
 
 	// setup debug logging
@@ -66,17 +65,17 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 	}
 
 	// Start client
-	es, err := elasticsearch7.NewClient(*s.Config)
+	client, err := elasticsearch7.NewClient(*s.Config)
 	if err != nil {
 		return fmt.Errorf("creating elasticsearch client: %w", err)
 	}
 
-	s.Client = es
+	s.Client = client
 
 	return s.testConnectivity(ctx)
 }
 
-func (s *Service) testConnectivity(ctx *goboot.AppContext) error {
+func (s *ElasticSearch) testConnectivity(ctx *AppContext) error {
 	res, err := s.Client.Info()
 	if err != nil {
 		return fmt.Errorf("fetch elasticsearch cluster info: %w", err)
@@ -91,7 +90,7 @@ func (s *Service) testConnectivity(ctx *goboot.AppContext) error {
 		)
 	}
 
-	var info ClusterInfo
+	var info ESClusterInfo
 	if err = json.NewDecoder(res.Body).Decode(&info); err != nil {
 		return fmt.Errorf("decoding cluster info: %w", err)
 	}
@@ -101,10 +100,10 @@ func (s *Service) testConnectivity(ctx *goboot.AppContext) error {
 	return nil
 }
 
-func (s *Service) Init() error {
+func (s *ElasticSearch) Init() error {
 	return nil
 }
 
-func (s *Service) Close() error {
+func (s *ElasticSearch) Close() error {
 	return nil
 }

@@ -1,4 +1,4 @@
-package postgres
+package goboot
 
 import (
 	"database/sql"
@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Printer interface {
+type PostgresMigratePrinter interface {
 	Printf(format string, v ...interface{})
 }
 
@@ -36,10 +36,10 @@ func (log *logger) Verbose() bool {
 	return true
 }
 
-// Migrate runs Postgres migration files from specified migrations directory.
+// PostgresMigrate runs Postgres migration files from specified migrations directory.
 //
 // Panics if anything went wrong.
-func Migrate(log zerolog.Logger, dsn string, migrationsDir string) error {
+func PostgresMigrate(log zerolog.Logger, dsn string, migrationsDir string) error {
 	contextLogger := logger{logger: log}
 
 	dir, err := filepath.Abs(migrationsDir)

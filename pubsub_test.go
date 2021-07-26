@@ -1,4 +1,4 @@
-package pubsub_test
+package goboot_test
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/nielskrijger/goboot"
-	"github.com/nielskrijger/goboot/pubsub"
 	"github.com/nielskrijger/goboot/utils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +25,7 @@ var (
 	errTest2 = errors.New("test error 2")
 )
 
-func newPubSubEmulatorService(t *testing.T, deadLetter bool) *pubsub.Service {
+func newPubSubEmulatorService(t *testing.T, deadLetter bool) *goboot.PubSub {
 	t.Helper()
 
 	if testing.Short() {
@@ -41,19 +40,19 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) *pubsub.Service {
 		_ = os.Setenv("PUBSUB_PROJECT_ID", "metrix-io")
 	}
 
-	opts := []pubsub.Option{
-		pubsub.WithChannel(&pubsub.Channel{ID: "test-channel", TopicID: topicID, SubscriptionID: subID}),
-		pubsub.WithChannel(&pubsub.Channel{ID: "without-subscription", TopicID: topicID2}),
+	opts := []goboot.Option{
+		goboot.WithChannel(&goboot.Channel{ID: "test-channel", TopicID: topicID, SubscriptionID: subID}),
+		goboot.WithChannel(&goboot.Channel{ID: "without-subscription", TopicID: topicID2}),
 	}
 
 	if deadLetter {
-		opts = append(opts, pubsub.WithDeadLetter(
-			&pubsub.Channel{TopicID: deadLetterTopicID, SubscriptionID: deadLetterSubID}))
+		opts = append(opts, goboot.WithDeadLetter(
+			&goboot.Channel{TopicID: deadLetterTopicID, SubscriptionID: deadLetterSubID}))
 	}
 
 	// configure pubsub Service with appcontext
-	s := pubsub.NewPubSubService("metrix-io", opts...)
-	appctx := goboot.NewAppContext("../testdata", "")
+	s := goboot.NewPubSubService("metrix-io", opts...)
+	appctx := goboot.NewAppContext("./testdata", "")
 
 	testLogger := &utils.TestLogger{}
 	appctx.Log = zerolog.New(testLogger)
@@ -70,7 +69,7 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) *pubsub.Service {
 	return s
 }
 
-func TestReceiveAll_Success(t *testing.T) {
+func TestPubSubReceiveAll_Success(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	defer s.Close()
 
@@ -91,7 +90,7 @@ func TestReceiveAll_Success(t *testing.T) {
 	assert.Equal(t, "\"test message2\"", string(ev2.Data))
 }
 
-func findEvent(msgs []*pubsub.RichMessage, eventName string) *pubsub.RichMessage {
+func findEvent(msgs []*goboot.RichMessage, eventName string) *goboot.RichMessage {
 	for _, msg := range msgs {
 		if msg.Attributes["event"] == eventName {
 			return msg
@@ -101,7 +100,7 @@ func findEvent(msgs []*pubsub.RichMessage, eventName string) *pubsub.RichMessage
 	return nil
 }
 
-func TestReceiveAll_ChannelDoesNotExist(t *testing.T) {
+func TestPubSubReceiveAll_ChannelDoesNotExist(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	defer s.Close()
 
@@ -111,17 +110,17 @@ func TestReceiveAll_ChannelDoesNotExist(t *testing.T) {
 	assert.Equal(t, "channel \"unknown\" not found", err.Error())
 }
 
-func TestReceiveAll_ContextClosed(t *testing.T) {
+func TestPubSubReceiveAll_ContextClosed(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 
 	ctx := context.Background()
 	_, err := s.ReceiveNr(ctx, "test-channel", 1)
 
-	assert.Equal(t, pubsub.ErrClosed, err)
+	assert.Equal(t, goboot.ErrPubSubClosed, err)
 }
 
-func TestPublishEvent_ChannelDoesNotExist(t *testing.T) {
+func TestPubSubPublishEvent_ChannelDoesNotExist(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
@@ -130,7 +129,7 @@ func TestPublishEvent_ChannelDoesNotExist(t *testing.T) {
 	assert.Equal(t, "channel \"unknown\" not found", err.Error())
 }
 
-func TestPublishEvent_MarshalError(t *testing.T) {
+func TestPubSubPublishEvent_MarshalError(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
@@ -139,7 +138,7 @@ func TestPublishEvent_MarshalError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to marshal payload")
 }
 
-func TestPublishEvent_ContextClosed(t *testing.T) {
+func TestPubSubPublishEvent_ContextClosed(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 
 	tout, _ := time.ParseDuration("1ms")
@@ -149,16 +148,16 @@ func TestPublishEvent_ContextClosed(t *testing.T) {
 
 	err := s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 
-	assert.Equal(t, pubsub.ErrClosed, err)
+	assert.Equal(t, goboot.ErrPubSubClosed, err)
 }
 
-func TestReceive_Success(t *testing.T) {
+func TestPubSubReceive_Success(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
-	c := make(chan *pubsub.RichMessage)
+	c := make(chan *goboot.RichMessage)
 
 	go func() {
-		_ = s.Receive(ctx, "test-channel", func(ctx context.Context, m *pubsub.RichMessage) {
+		_ = s.Receive(ctx, "test-channel", func(ctx context.Context, m *goboot.RichMessage) {
 			c <- m
 		})
 	}()
@@ -170,25 +169,25 @@ func TestReceive_Success(t *testing.T) {
 	assert.Equal(t, "\"test message\"", string(msg.Data))
 }
 
-func TestReceive_ChannelDoesNotExit(t *testing.T) {
+func TestPubSubReceive_ChannelDoesNotExit(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
-	err := s.Receive(ctx, "unknown", func(context.Context, *pubsub.RichMessage) {})
+	err := s.Receive(ctx, "unknown", func(context.Context, *goboot.RichMessage) {})
 
 	assert.Equal(t, "channel \"unknown\" not found", err.Error())
 }
 
-func TestReceive_ChannelWithoutSubscription(t *testing.T) {
+func TestPubSubReceive_ChannelWithoutSubscription(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	ctx := context.Background()
 
-	err := s.Receive(ctx, "without-subscription", func(context.Context, *pubsub.RichMessage) {})
+	err := s.Receive(ctx, "without-subscription", func(context.Context, *goboot.RichMessage) {})
 
 	assert.Equal(t, "channel \"without-subscription\" does not have a subscription", err.Error())
 }
 
-func TestDeleteChannel_ChannelDoesNotExist(t *testing.T) {
+func TestPubSubDeleteChannel_ChannelDoesNotExist(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 
 	err := s.DeleteChannel("unknown")
@@ -196,25 +195,25 @@ func TestDeleteChannel_ChannelDoesNotExist(t *testing.T) {
 	assert.Equal(t, "channel \"unknown\" not found", err.Error())
 }
 
-func TestDeleteChannel_ServiceClosed(t *testing.T) {
+func TestPubSubDeleteChannel_ServiceClosed(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 
 	err := s.DeleteChannel("test-channel")
 
-	assert.Equal(t, pubsub.ErrClosed, err)
+	assert.Equal(t, goboot.ErrPubSubClosed, err)
 }
 
-func TestDeleteAll_ServiceClosed(t *testing.T) {
+func TestPubSubDeleteAll_ServiceClosed(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 
 	err := s.DeleteAll()
 
-	assert.Equal(t, pubsub.ErrClosed, err)
+	assert.Equal(t, goboot.ErrPubSubClosed, err)
 }
 
-func TestTryClose_LogErrorOnFailure(t *testing.T) {
+func TestPubSubTryClose_LogErrorOnFailure(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 	assert.EqualError(t, s.Close(),
@@ -223,7 +222,7 @@ func TestTryClose_LogErrorOnFailure(t *testing.T) {
 	)
 }
 
-func TestDeadLetter_Success(t *testing.T) {
+func TestPubSubDeadLetter_Success(t *testing.T) {
 	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 
@@ -245,7 +244,7 @@ func TestDeadLetter_Success(t *testing.T) {
 	assert.Equal(t, "test error", attr["error"])
 }
 
-func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
+func TestPubSubDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
 	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 
@@ -265,16 +264,16 @@ func TestDeadLetter_IncrementDeadLetterCounter(t *testing.T) {
 	assert.Equal(t, "test error 2", attr["error"])
 }
 
-func TestDeadLetter_ErrorOnFailure(t *testing.T) {
+func TestPubSubDeadLetter_ErrorOnFailure(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 
-	msg := &pubsub.RichMessage{Service: s}
+	msg := &goboot.RichMessage{Service: s}
 	err := msg.DeadLetter(context.Background(), errTest)
 
 	assert.Equal(t, "no deadletter channel configured", err.Error())
 }
 
-func TestRetryableError_Success(t *testing.T) {
+func TestPubSubRetryableError_Success(t *testing.T) {
 	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
@@ -293,7 +292,7 @@ func TestRetryableError_Success(t *testing.T) {
 	assert.Len(t, msgs, 0)
 }
 
-func TestRetryableError_MaxRetryAgeExpired(t *testing.T) {
+func TestPubSubRetryableError_MaxRetryAgeExpired(t *testing.T) {
 	s := newPubSubEmulatorService(t, true)
 	ctx := context.Background()
 	_ = s.PublishEvent(ctx, "test-channel", "ev1", "test message")
@@ -321,8 +320,8 @@ var trimTests = []struct {
 	{"日本語", 6, "日本"},
 }
 
-func TestStringTrimLeftBytes(t *testing.T) {
+func TestPubSubStringTrimLeftBytes(t *testing.T) {
 	for _, tt := range trimTests {
-		assert.Equal(t, tt.out, pubsub.TrimLeftBytes(tt.in, tt.maxBytes))
+		assert.Equal(t, tt.out, goboot.TrimLeftBytes(tt.in, tt.maxBytes))
 	}
 }

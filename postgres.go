@@ -1,4 +1,4 @@
-package postgres
+package goboot
 
 import (
 	"errors"
@@ -8,21 +8,20 @@ import (
 	"time"
 
 	"github.com/go-pg/pg"
-	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 )
 
 const (
-	defaultConnectMaxRetries    = 5
-	defaultConnectRetryDuration = 5 * time.Second
+	defaultPostgresConnectMaxRetries    = 5
+	defaultPostgresConnectRetryDuration = 5 * time.Second
 )
 
 var (
-	errMissingConfig = errors.New("missing postgres configuration")
-	errMissingDSN    = errors.New("config \"postgres.dsn\" is required")
+	errMissingPostgresConfig = errors.New("missing postgres configuration")
+	errMissingPostgresDSN    = errors.New("config \"postgres.dsn\" is required")
 )
 
-type Config struct {
+type PostgresConfig struct {
 	// DSN contains hostname:port, e.g. localhost:6379
 	DSN string `yaml:"dsn"`
 
@@ -36,10 +35,10 @@ type Config struct {
 	ConnectRetryDuration time.Duration `yaml:"connectRetryDuration"`
 }
 
-// Service implements the AppService interface.
-type Service struct {
+// Postgres implements the AppService interface.
+type Postgres struct {
 	DB     *pg.DB
-	Config *Config
+	Config *PostgresConfig
 
 	log     zerolog.Logger
 	confDir string
@@ -64,25 +63,25 @@ type healtcheckResult struct {
 	Result int
 }
 
-func (s *Service) Name() string {
+func (s *Postgres) Name() string {
 	return "postgres"
 }
 
 // Configure connects to postgres and logs connection info for
 // debugging connectivity issues.
-func (s *Service) Configure(ctx *goboot.AppContext) error {
+func (s *Postgres) Configure(ctx *AppContext) error {
 	s.log = ctx.Log
 	s.confDir = ctx.ConfDir
 
 	// unmarshal config and set defaults
-	s.Config = &Config{}
+	s.Config = &PostgresConfig{}
 
 	if !ctx.Config.InConfig("postgres") {
-		return errMissingConfig
+		return errMissingPostgresConfig
 	}
 
 	if !ctx.Config.IsSet("postgres.dsn") {
-		return errMissingDSN
+		return errMissingPostgresDSN
 	}
 
 	if err := ctx.Config.Sub("postgres").Unmarshal(s.Config); err != nil {
@@ -90,11 +89,11 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 	}
 
 	if s.Config.ConnectMaxRetries == 0 {
-		s.Config.ConnectMaxRetries = defaultConnectMaxRetries
+		s.Config.ConnectMaxRetries = defaultPostgresConnectMaxRetries
 	}
 
 	if s.Config.ConnectRetryDuration == 0*time.Second {
-		s.Config.ConnectRetryDuration = defaultConnectRetryDuration
+		s.Config.ConnectRetryDuration = defaultPostgresConnectRetryDuration
 	}
 
 	// check if we can connect to PostgreSQL
@@ -110,7 +109,7 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 	return nil
 }
 
-func (s *Service) testConnectivity() error {
+func (s *Postgres) testConnectivity() error {
 	// parse url for logging purposes
 	logURL, err := url.Parse(s.Config.DSN)
 	if err != nil {
@@ -159,7 +158,7 @@ func (s *Service) testConnectivity() error {
 	return nil
 }
 
-func (s *Service) Init() error {
+func (s *Postgres) Init() error {
 	u, err := url.Parse(s.Config.DSN)
 	if err != nil {
 		return fmt.Errorf("invalid postgres dsn: %w", err)
@@ -171,14 +170,14 @@ func (s *Service) Init() error {
 	q.Set("connect_timeout", strconv.Itoa(s.Config.ConnectTimeout))
 	u.RawQuery = q.Encode()
 
-	if err := Migrate(s.log, u.String(), s.confDir+"/migrations"); err != nil {
+	if err := PostgresMigrate(s.log, u.String(), s.confDir+"/migrations"); err != nil {
 		return fmt.Errorf("running postgres migrations: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Service) Close() error {
+func (s *Postgres) Close() error {
 	if err := s.DB.Close(); err != nil {
 		return fmt.Errorf("closing %s service: %w", s.Name(), err)
 	}

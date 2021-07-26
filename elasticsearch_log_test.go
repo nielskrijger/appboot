@@ -1,4 +1,4 @@
-package elasticsearch_test
+package goboot_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7/esutil"
-	"github.com/nielskrijger/goboot/elasticsearch"
+	"github.com/nielskrijger/goboot"
 	"github.com/nielskrijger/goboot/utils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +45,7 @@ func TestLogBulk_Success(t *testing.T) {
 	log := &utils.TestLogger{}
 	bulkIndexer := mockBulkIndexer{bulkStats: mockStats}
 
-	elasticsearch.LogBulkStats(zerolog.New(log), bulkIndexer, 2*time.Second)
+	goboot.LogBulkStats(zerolog.New(log), bulkIndexer, 2*time.Second)
 
 	assert.Equal(t, "Finished indexing 2 ElasticSearch documents in 2s (1 docs/sec)", log.LastLine()["message"])
 }
@@ -56,7 +56,7 @@ func TestLogBulk_Failed(t *testing.T) {
 	mockStatsClone.NumFailed = 3
 	bulkIndexer := mockBulkIndexer{bulkStats: mockStatsClone}
 
-	elasticsearch.LogBulkStats(zerolog.New(log), bulkIndexer, 100*time.Millisecond)
+	goboot.LogBulkStats(zerolog.New(log), bulkIndexer, 100*time.Millisecond)
 
 	assert.Equal(t,
 		"Finished indexing 2 ElasticSearch documents with 3 errors in 100ms (20 docs/sec)",

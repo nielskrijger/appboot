@@ -1,4 +1,4 @@
-package redis
+package goboot
 
 import (
 	"errors"
@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 )
 
 const (
-	defaultConnectMaxRetries    = 5
-	defaultConnectRetryDuration = 5 * time.Second
+	defaultRedisConnectMaxRetries    = 5
+	defaultRedisConnectRetryDuration = 5 * time.Second
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 	errMissingURL    = errors.New("config \"redis.url\" is required")
 )
 
-type Config struct {
+type RedisConfig struct {
 	// Url contains hostname:port, e.g. localhost:6379
 	URL string `yaml:"url"`
 
@@ -44,20 +43,20 @@ type Config struct {
 	ConnectRetryDuration time.Duration `yaml:"connectRetryDuration"`
 }
 
-// Service implements the AppService interface.
-type Service struct {
+// Redis implements the AppService interface.
+type Redis struct {
 	Client *redis.Client
 
 	log zerolog.Logger
 }
 
-func (s *Service) Name() string {
+func (s *Redis) Name() string {
 	return "redis"
 }
 
-func (s *Service) Configure(ctx *goboot.AppContext) error {
+func (s *Redis) Configure(ctx *AppContext) error {
 	s.log = ctx.Log
-	redisCfg := &Config{}
+	redisCfg := &RedisConfig{}
 
 	if !ctx.Config.InConfig("redis") {
 		return errMissingConfig
@@ -89,17 +88,17 @@ func (s *Service) Configure(ctx *goboot.AppContext) error {
 	s.Client = redis.NewClient(opts)
 
 	if redisCfg.ConnectMaxRetries == 0 {
-		redisCfg.ConnectMaxRetries = defaultConnectMaxRetries
+		redisCfg.ConnectMaxRetries = defaultRedisConnectMaxRetries
 	}
 
 	if redisCfg.ConnectRetryDuration == 0*time.Second {
-		redisCfg.ConnectRetryDuration = defaultConnectRetryDuration
+		redisCfg.ConnectRetryDuration = defaultRedisConnectRetryDuration
 	}
 
 	return s.testConnectivity(redisCfg)
 }
 
-func (s *Service) testConnectivity(cfg *Config) error {
+func (s *Redis) testConnectivity(cfg *RedisConfig) error {
 	for retries := 1; ; retries++ {
 		if err := s.Client.Ping().Err(); err != nil {
 			if retries < cfg.ConnectMaxRetries {
@@ -128,12 +127,12 @@ func (s *Service) testConnectivity(cfg *Config) error {
 }
 
 // Init implements AppService interface.
-func (s *Service) Init() error {
+func (s *Redis) Init() error {
 	return nil
 }
 
 // Close is run right before shutdown. The app waits until close resolves.
-func (s *Service) Close() error {
+func (s *Redis) Close() error {
 	if err := s.Client.Close(); err != nil {
 		return fmt.Errorf("closing %s service: %w", s.Name(), err)
 	}

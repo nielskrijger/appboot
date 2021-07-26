@@ -2,4 +2,4 @@ elasticsearch:
   username: elastic
   password: secret
   addresses:
-    - http://localhost:9200
+    - http://0.0.0.0:9200

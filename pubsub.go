@@ -1,4 +1,4 @@
-package pubsub
+package goboot
 
 import (
 	"context"
@@ -8,15 +8,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	gpubsub "cloud.google.com/go/pubsub"
-	"github.com/nielskrijger/goboot"
+	"cloud.google.com/go/pubsub"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-var ErrClosed = errors.New("pubsub Service has been closed")
+var ErrPubSubClosed = errors.New("pubsub Service has been closed")
 
 // defaultDeadLetterName is the name used to identity the dead letter channel
 // if no other name was defined.
@@ -27,14 +26,14 @@ const (
 	MaxAttributeLength    = 1024
 )
 
-// Service adds some utility methods to the Google cloud
-// Service such ensuring a topic and subscription exists and
+// PubSub adds some utility methods to the Google cloud
+// PubSub such ensuring a topic and subscription exists and
 // deadlettering.
 //
 // It represents subscriptions and topics as a single message Channel
 // as from an application perspective.
-type Service struct {
-	*gpubsub.Client
+type PubSub struct {
+	*pubsub.Client
 
 	Channels map[string]*Channel
 
@@ -46,17 +45,17 @@ type Service struct {
 	options   []Option
 }
 
-// RichMessage embeds the raw gcloud pubsub message with additional details
+// PubSubRichMessage embeds the raw gcloud pubsub message with additional details
 // and functions.
 //
-// The RichMessage primarily helps handling retryable and unrecoverable errors.
+// The PubSubRichMessage primarily helps handling retryable and unrecoverable errors.
 type RichMessage struct {
-	*gpubsub.Message
-	Service *Service
+	*pubsub.Message
+	Service *PubSub
 	Channel *Channel
 }
 
-// Channel is a message channel containing a topic ID and optionally a subscription.
+// PubSubChannel is a message channel containing a topic ID and optionally a subscription.
 type Channel struct {
 	ID             string
 	TopicID        string
@@ -75,7 +74,7 @@ type Channel struct {
 	MaxRetryAge time.Duration
 }
 
-type Option func(*Service)
+type Option func(*PubSub)
 
 // WithChannel option adds a channel with a topic and a subscription.
 //
@@ -84,8 +83,8 @@ type Option func(*Service)
 //
 // If you're not intending to receive any messages you can leave the subscriptionID empty.
 // Be aware any messages sent to a topic without any subscription are essentially lost.
-func WithChannel(ch *Channel) func(*Service) {
-	return func(cl *Service) {
+func WithChannel(ch *Channel) func(*PubSub) {
+	return func(cl *PubSub) {
 		if ch.MaxRetryAge == 0 {
 			ch.MaxRetryAge = RetryDelay
 		}
@@ -94,7 +93,7 @@ func WithChannel(ch *Channel) func(*Service) {
 	}
 }
 
-// WithDeadLetter option adds a deadletter channel.
+// WithDeadLetter option adds a deadletter channel to the Pub/Sub service.
 //
 // The topic and optional subscription are automatically created if they don't exist
 // already just like a regular channel.
@@ -109,8 +108,8 @@ func WithChannel(ch *Channel) func(*Service) {
 // Like a normal channel the subscriptionID is optional but be aware messages sent
 // to a topic without any subscriptions are dropped immediately. When the channel
 // name is left empty the default name "dead-letter" is used instead.
-func WithDeadLetter(ch *Channel) func(*Service) {
-	return func(cl *Service) {
+func WithDeadLetter(ch *Channel) func(*PubSub) {
+	return func(cl *PubSub) {
 		if ch.ID == "" {
 			ch.ID = DefaultDeadLetterName
 		}
@@ -121,27 +120,27 @@ func WithDeadLetter(ch *Channel) func(*Service) {
 }
 
 // NewPubSubService configures a new Service and connects to the pubsub server.
-func NewPubSubService(projectID string, options ...Option) *Service {
-	return &Service{
+func NewPubSubService(projectID string, options ...Option) *PubSub {
+	return &PubSub{
 		projectID: projectID,
 		Channels:  make(map[string]*Channel),
 		options:   options,
 	}
 }
 
-func (s *Service) Name() string {
+func (s *PubSub) Name() string {
 	return "pubsub"
 }
 
 // Configure implements the context.AppService interface and instantiates
 // the client connection to gcloud pubsub.
-func (s *Service) Configure(appctx *goboot.AppContext) error {
+func (s *PubSub) Configure(appctx *AppContext) error {
 	s.log = appctx.Log
 	for _, option := range s.options {
 		option(s)
 	}
 
-	client, err := gpubsub.NewClient(context.Background(), s.projectID)
+	client, err := pubsub.NewClient(context.Background(), s.projectID)
 	if err != nil {
 		return fmt.Errorf("connecting to gcloud pubsub: %w", err)
 	}
@@ -152,16 +151,16 @@ func (s *Service) Configure(appctx *goboot.AppContext) error {
 	return nil
 }
 
-func (s *Service) addChannel(ch *Channel) {
+func (s *PubSub) addChannel(ch *Channel) {
 	s.Channels[ch.ID] = ch
 }
 
-func (s *Service) Channel(channelID string) *Channel {
+func (s *PubSub) Channel(channelID string) *Channel {
 	return s.Channels[channelID]
 }
 
 // CreateAll ensures all topics and subscriptions exist.
-func (s *Service) CreateAll() error {
+func (s *PubSub) CreateAll() error {
 	for _, ch := range s.Channels {
 		if err := s.EnsureTopic(ch.TopicID); err != nil {
 			return err
@@ -179,14 +178,14 @@ func (s *Service) CreateAll() error {
 
 // Init implements the context.AppService interface and executes the MustCreateAll
 // method.
-func (s *Service) Init() error {
+func (s *PubSub) Init() error {
 	s.log.Info().Msg("ensuring all google pubsub topics & subscriptions exist")
 
 	return s.CreateAll()
 }
 
 // Close releases any resources held by the pubsub Service such as memory and goroutines.
-func (s *Service) Close() error {
+func (s *PubSub) Close() error {
 	if err := s.Client.Close(); err != nil {
 		return fmt.Errorf("closing %s service: %w", s.Name(), err)
 	}
@@ -229,10 +228,11 @@ func (msg *RichMessage) DeadLetter(ctx context.Context, cause error) error {
 
 	// Publish message to dead letter topic
 	topic := msg.Service.Topic(msg.Service.DeadLetterChannel.TopicID)
-	_, err := topic.Publish(ctx, &gpubsub.Message{
+	_, err := topic.Publish(ctx, &pubsub.Message{
 		Data:       msg.Data,
 		Attributes: newMap,
 	}).Get(ctx)
+
 	// When successful ACK, if unsuccessful NACK
 	if err != nil {
 		msg.Nack()
@@ -282,7 +282,7 @@ func (msg *RichMessage) TryRetryableError(ctx context.Context, cause error) {
 
 // EnsureTopic creates a topic with specified ID if it doesn't exist already.
 // In most cases you should use CreateAll instead.
-func (s *Service) EnsureTopic(topicID string) error {
+func (s *PubSub) EnsureTopic(topicID string) error {
 	s.log.Info().Msgf("ensure topic %q exists", topicID)
 
 	ctx := context.Background()
@@ -311,7 +311,7 @@ func (s *Service) EnsureTopic(topicID string) error {
 //
 // The subscription is created with an ACK deadline of 10 seconds, meaning the
 // message must be ACK'ed or NACK'ed within 10 seconds or else it will be re-delivered.
-func (s *Service) EnsureSubscription(topicID string, subID string) error {
+func (s *PubSub) EnsureSubscription(topicID string, subID string) error {
 	s.log.Info().Msgf("ensure subscription %q for topic %q exists", subID, topicID)
 
 	ctx := context.Background()
@@ -321,7 +321,7 @@ func (s *Service) EnsureSubscription(topicID string, subID string) error {
 	case err != nil:
 		return fmt.Errorf("checking if subscriptions %s exists: %w", subID, err)
 	case !exists:
-		_, err := s.CreateSubscription(ctx, subID, gpubsub.SubscriptionConfig{
+		_, err := s.CreateSubscription(ctx, subID, pubsub.SubscriptionConfig{
 			Topic:       s.Topic(topicID),
 			AckDeadline: AckDeadline,
 		})
@@ -339,7 +339,7 @@ func (s *Service) EnsureSubscription(topicID string, subID string) error {
 
 // DeleteAll deletes all topics and subscriptions of all configured channels,
 // including the dead-letter channel.
-func (s *Service) DeleteAll() error {
+func (s *PubSub) DeleteAll() error {
 	for _, ch := range s.Channels {
 		if err := s.DeleteChannel(ch.ID); err != nil {
 			return err
@@ -358,7 +358,7 @@ func translateError(err error, wrapMsg string, args ...interface{}) error {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Canceled {
-			return ErrClosed
+			return ErrPubSubClosed
 		}
 
 		return errors.Wrapf(err, wrapMsg, args...)
@@ -369,7 +369,7 @@ func translateError(err error, wrapMsg string, args ...interface{}) error {
 
 // DeleteChannel deletes the pubsub topic and subscription if they exist. If they don't exist
 // nothing happens.
-func (s *Service) DeleteChannel(channel string) error {
+func (s *PubSub) DeleteChannel(channel string) error {
 	ch := s.Channels[channel]
 	if ch == nil {
 		return errors.Errorf("channel %q not found", channel)
@@ -408,7 +408,7 @@ func (s *Service) DeleteChannel(channel string) error {
 //
 // It is similar to a normal google pubsub subscription receiver but returns RichMessages
 // in specified callback.
-func (s *Service) Receive(ctx context.Context, channel string, f func(context.Context, *RichMessage)) error {
+func (s *PubSub) Receive(ctx context.Context, channel string, f func(context.Context, *RichMessage)) error {
 	ch := s.Channels[channel]
 	if ch == nil {
 		return errors.Errorf("channel %q not found", channel)
@@ -418,7 +418,7 @@ func (s *Service) Receive(ctx context.Context, channel string, f func(context.Co
 		return errors.Errorf("channel %q does not have a subscription", channel)
 	}
 
-	err := s.Subscription(ch.SubscriptionID).Receive(ctx, func(ctx2 context.Context, msg *gpubsub.Message) {
+	err := s.Subscription(ch.SubscriptionID).Receive(ctx, func(ctx2 context.Context, msg *pubsub.Message) {
 		f(ctx2, &RichMessage{
 			Message: msg,
 			Service: s,
@@ -432,7 +432,7 @@ func (s *Service) Receive(ctx context.Context, channel string, f func(context.Co
 // ReceiveNr blocks until the specified number of messages have been retrieved.
 //
 // This should only be used with caution for scripting and testing purposes.
-func (s *Service) ReceiveNr(ctx context.Context, channel string, nrOfMessages int) ([]*RichMessage, error) {
+func (s *PubSub) ReceiveNr(ctx context.Context, channel string, nrOfMessages int) ([]*RichMessage, error) {
 	ch := s.Channels[channel]
 	if ch == nil {
 		return nil, errors.Errorf("channel %q not found", channel)
@@ -443,7 +443,7 @@ func (s *Service) ReceiveNr(ctx context.Context, channel string, nrOfMessages in
 
 	var msgs []*RichMessage
 
-	err := sub.Receive(cctx, func(ctx context.Context, msg *gpubsub.Message) {
+	err := sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		msg.Ack()
 		msgs = append(msgs, &RichMessage{
 			Message: msg,
@@ -466,7 +466,7 @@ func (s *Service) ReceiveNr(ctx context.Context, channel string, nrOfMessages in
 //
 // Google's pubsub batching is disabled by default which is only useful in very high-throughput
 // use cases.
-func (s *Service) PublishEvent(ctx context.Context, channel string, eventName string, payload interface{}) error {
+func (s *PubSub) PublishEvent(ctx context.Context, channel string, eventName string, payload interface{}) error {
 	ch := s.Channels[channel]
 	if ch == nil {
 		return errors.Errorf("channel %q not found", channel)
@@ -479,7 +479,7 @@ func (s *Service) PublishEvent(ctx context.Context, channel string, eventName st
 
 	t := s.Topic(ch.TopicID)
 
-	_, err = t.Publish(ctx, &gpubsub.Message{
+	_, err = t.Publish(ctx, &pubsub.Message{
 		Data: bytes,
 		Attributes: map[string]string{
 			"event": eventName,
@@ -494,7 +494,7 @@ func (s *Service) PublishEvent(ctx context.Context, channel string, eventName st
 
 // TryPublishEvent is the same as PublishEvent but logs any error rather than
 // returning it.
-func (s *Service) TryPublishEvent(ctx context.Context, channel string, eventName string, payload interface{}) {
+func (s *PubSub) TryPublishEvent(ctx context.Context, channel string, eventName string, payload interface{}) {
 	if err := s.PublishEvent(ctx, channel, eventName, payload); err != nil {
 		s.log.Error().Err(err).Msgf("failed to publish event %q", eventName)
 	}
