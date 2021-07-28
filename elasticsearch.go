@@ -9,7 +9,6 @@ import (
 
 	elasticsearch7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/estransport"
-	"github.com/nielskrijger/goboot/utils"
 )
 
 var (
@@ -80,7 +79,12 @@ func (s *ElasticSearch) testConnectivity(ctx *AppContext) error {
 	if err != nil {
 		return fmt.Errorf("fetch elasticsearch cluster info: %w", err)
 	}
-	defer utils.Close(ctx.Log, res.Body)
+
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			ctx.Log.Warn().Err(err).Msg("failed to properly close elasticsearch response body")
+		}
+	}()
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf( // nolint:goerr113
