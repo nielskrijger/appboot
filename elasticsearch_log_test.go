@@ -7,7 +7,7 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v7/esutil"
 	"github.com/nielskrijger/goboot"
-	"github.com/nielskrijger/goboot/utils"
+	"github.com/nielskrijger/goutils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,7 +42,7 @@ func (m mockBulkIndexer) Stats() esutil.BulkIndexerStats {
 }
 
 func TestLogBulk_Success(t *testing.T) {
-	log := &utils.TestLogger{}
+	log := &goutils.TestLogger{}
 	bulkIndexer := mockBulkIndexer{bulkStats: mockStats}
 
 	goboot.LogBulkStats(zerolog.New(log), bulkIndexer, 2*time.Second)
@@ -51,7 +51,7 @@ func TestLogBulk_Success(t *testing.T) {
 }
 
 func TestLogBulk_Failed(t *testing.T) {
-	log := &utils.TestLogger{}
+	log := &goutils.TestLogger{}
 	mockStatsClone := mockStats
 	mockStatsClone.NumFailed = 3
 	bulkIndexer := mockBulkIndexer{bulkStats: mockStatsClone}

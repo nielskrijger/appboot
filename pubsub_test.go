@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/nielskrijger/goboot"
-	"github.com/nielskrijger/goboot/utils"
+	"github.com/nielskrijger/goutils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,7 +54,7 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) *goboot.PubSub {
 	s := goboot.NewPubSubService("metrix-io", opts...)
 	appctx := goboot.NewAppContext("./testdata", "")
 
-	testLogger := &utils.TestLogger{}
+	testLogger := &goutils.TestLogger{}
 	appctx.Log = zerolog.New(testLogger)
 
 	assert.Nil(t, s.Configure(appctx))
