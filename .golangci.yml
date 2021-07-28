@@ -13,11 +13,8 @@ linters-settings:
     default-signifies-exhaustive: true # enable "default"-case in switch as catch-all for all other options
 
 issues:
-  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
-  max-per-linter: 0
-
-  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
-  max-same-issues: 0
+  max-per-linter: 0 # default is 50, 0 = disable
+  max-same-issues: 0 # default is 3, 0 = disable
 
 output:
   sort-results: true
