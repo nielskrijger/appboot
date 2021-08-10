@@ -37,7 +37,7 @@ func (s *ElasticSearch) Configure(ctx *AppContext) error {
 		return errMissingElasticsearchConfig
 	}
 
-	if err := ctx.Config.Sub("elasticsearch").UnmarshalExact(&s.Config); err != nil {
+	if err := ctx.Config.Sub("elasticsearch").Unmarshal(&s.Config); err != nil {
 		return fmt.Errorf("parsing elasticsearch configuration: %w", err)
 	}
 
