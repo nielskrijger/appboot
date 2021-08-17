@@ -36,18 +36,18 @@ func (log *logger) Verbose() bool {
 	return true
 }
 
-// PostgresMigrate runs Postgres migration files from specified migrations directory.
+// Migrate runs Postgres migration files from specified migrations directory.
 //
 // Panics if anything went wrong.
-func PostgresMigrate(log zerolog.Logger, dsn string, migrationsDir string) error {
-	contextLogger := logger{logger: log}
+func (s *Postgres) Migrate(dsn string, migrations string) error {
+	ctxLog := logger{logger: s.log}
 
-	dir, err := filepath.Abs(migrationsDir)
+	dir, err := filepath.Abs(migrations)
 	if err != nil {
 		return fmt.Errorf("reading migrations path: %w", err)
 	}
 
-	contextLogger.Printf("running database migrations from %s", dir)
+	ctxLog.Printf("running database migrations from %s", dir)
 
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
@@ -79,17 +79,17 @@ func PostgresMigrate(log zerolog.Logger, dsn string, migrationsDir string) error
 		return fmt.Errorf("connecting to postgres for migrations: %w", err)
 	}
 
-	m.Log = &contextLogger
+	m.Log = &ctxLog
 
 	err = m.Up()
 	if err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			contextLogger.Printf("database is up-to-date")
+			ctxLog.Printf("database is up-to-date")
 		} else {
 			return fmt.Errorf("running migrations: %w", err)
 		}
 	} else {
-		contextLogger.Printf("completed database migrations")
+		ctxLog.Printf("completed database migrations")
 	}
 
 	return nil

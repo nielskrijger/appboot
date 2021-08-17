@@ -1,6 +1,7 @@
 package goboot
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,27 +10,37 @@ import (
 
 	elasticsearch7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/estransport"
+	"github.com/rs/zerolog"
 )
 
 var (
-	errMissingElasticsearchConfig    = errors.New("missing elasticsearch configuration")
+	errMissingElasticsearchConfig    = errors.New("missing \"elasticsearch\" configuration")
 	errMissingElasticsearchAddresses = errors.New("config \"elasticsearch.addresses\" is required")
 )
+
+const defaultMigrationsIndex = "migrations"
 
 type ESClusterInfo struct {
 	ClusterName string `json:"cluster_name"`
 }
 
-type ElasticSearch struct {
+type Elasticsearch struct {
+	Migrations      []*ElasticsearchMigration
+	MigrationsIndex string
+
 	*elasticsearch7.Client
 	*elasticsearch7.Config
+
+	log zerolog.Logger
 }
 
-func (s *ElasticSearch) Name() string {
+func (s *Elasticsearch) Name() string {
 	return "elasticsearch"
 }
 
-func (s *ElasticSearch) Configure(ctx *AppContext) error {
+func (s *Elasticsearch) Configure(ctx *AppEnv) error {
+	s.log = ctx.Log
+
 	// unmarshal config and set defaults
 	s.Config = &elasticsearch7.Config{}
 
@@ -43,6 +54,14 @@ func (s *ElasticSearch) Configure(ctx *AppContext) error {
 
 	if len(s.Config.Addresses) == 0 {
 		return errMissingElasticsearchAddresses
+	}
+
+	if s.MigrationsIndex == "" {
+		if ctx.Config.IsSet("elasticsearch.migrationsIndex") {
+			s.MigrationsIndex = ctx.Config.GetString("elasticsearch.migrationsIndex")
+		} else {
+			s.MigrationsIndex = defaultMigrationsIndex
+		}
 	}
 
 	// setup debug logging
@@ -74,7 +93,7 @@ func (s *ElasticSearch) Configure(ctx *AppContext) error {
 	return s.testConnectivity(ctx)
 }
 
-func (s *ElasticSearch) testConnectivity(ctx *AppContext) error {
+func (s *Elasticsearch) testConnectivity(ctx *AppEnv) error {
 	res, err := s.Client.Info()
 	if err != nil {
 		return fmt.Errorf("fetch elasticsearch cluster info: %w", err)
@@ -99,15 +118,19 @@ func (s *ElasticSearch) testConnectivity(ctx *AppContext) error {
 		return fmt.Errorf("decoding cluster info: %w", err)
 	}
 
-	ctx.Log.Info().Msgf("Successfully connected to ElasticSearch cluster \"%s\"", info.ClusterName)
+	ctx.Log.Info().Msgf("successfully connected to Elasticsearch cluster \"%s\"", info.ClusterName)
 
 	return nil
 }
 
-func (s *ElasticSearch) Init() error {
+func (s *Elasticsearch) Init() error {
+	if err := s.Migrate(context.Background()); err != nil {
+		return fmt.Errorf("running Elasticsearch migrations: %w", err)
+	}
+
 	return nil
 }
 
-func (s *ElasticSearch) Close() error {
+func (s *Elasticsearch) Close() error {
 	return nil
 }

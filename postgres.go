@@ -37,9 +37,11 @@ type PostgresConfig struct {
 
 // Postgres implements the AppService interface.
 type Postgres struct {
-	DB     *pg.DB
-	Config *PostgresConfig
+	MigrationsDir string // relative path to migrations directory, leave empty when no migrations
 
+	DB *pg.DB
+
+	config  *PostgresConfig
 	log     zerolog.Logger
 	confDir string
 }
@@ -69,12 +71,12 @@ func (s *Postgres) Name() string {
 
 // Configure connects to postgres and logs connection info for
 // debugging connectivity issues.
-func (s *Postgres) Configure(ctx *AppContext) error {
+func (s *Postgres) Configure(ctx *AppEnv) error {
 	s.log = ctx.Log
 	s.confDir = ctx.ConfDir
 
 	// unmarshal config and set defaults
-	s.Config = &PostgresConfig{}
+	s.config = &PostgresConfig{}
 
 	if !ctx.Config.InConfig("postgres") {
 		return errMissingPostgresConfig
@@ -84,16 +86,16 @@ func (s *Postgres) Configure(ctx *AppContext) error {
 		return errMissingPostgresDSN
 	}
 
-	if err := ctx.Config.Sub("postgres").Unmarshal(s.Config); err != nil {
+	if err := ctx.Config.Sub("postgres").Unmarshal(s.config); err != nil {
 		return fmt.Errorf("parsing postgres configuration: %w", err)
 	}
 
-	if s.Config.ConnectMaxRetries == 0 {
-		s.Config.ConnectMaxRetries = defaultPostgresConnectMaxRetries
+	if s.config.ConnectMaxRetries == 0 {
+		s.config.ConnectMaxRetries = defaultPostgresConnectMaxRetries
 	}
 
-	if s.Config.ConnectRetryDuration == 0*time.Second {
-		s.Config.ConnectRetryDuration = defaultPostgresConnectRetryDuration
+	if s.config.ConnectRetryDuration == 0*time.Second {
+		s.config.ConnectRetryDuration = defaultPostgresConnectRetryDuration
 	}
 
 	// check if we can connect to PostgreSQL
@@ -111,7 +113,7 @@ func (s *Postgres) Configure(ctx *AppContext) error {
 
 func (s *Postgres) testConnectivity() error {
 	// parse url for logging purposes
-	logURL, err := url.Parse(s.Config.DSN)
+	logURL, err := url.Parse(s.config.DSN)
 	if err != nil {
 		return fmt.Errorf("invalid postgres dsn: %w", err)
 	}
@@ -120,34 +122,34 @@ func (s *Postgres) testConnectivity() error {
 	s.log.Info().Msgf("connecting to %s", logURL.String())
 
 	// parse
-	pgOptions, err := pg.ParseURL(s.Config.DSN)
+	pgOptions, err := pg.ParseURL(s.config.DSN)
 	if err != nil {
 		return fmt.Errorf("could not parse postgres DSN: %w", err)
 	}
 
-	pgOptions.DialTimeout = time.Duration(s.Config.ConnectTimeout) * time.Second
+	pgOptions.DialTimeout = time.Duration(s.config.ConnectTimeout) * time.Second
 
 	for retries := 1; ; retries++ {
 		s.DB = pg.Connect(pgOptions)
 
 		// test connection
 		if _, err := s.DB.Query(&healtcheckResult{}, "SELECT 1 AS result"); err != nil {
-			if retries < s.Config.ConnectMaxRetries {
+			if retries < s.config.ConnectMaxRetries {
 				s.log.
 					Warn().
 					Err(err).
 					Str("url", logURL.String()).
-					Msgf("failed to connect to postgres, retrying in %s", s.Config.ConnectRetryDuration)
+					Msgf("failed to connect to postgres, retrying in %s", s.config.ConnectRetryDuration)
 			} else {
 				return fmt.Errorf(
 					"failed to connect to postgres %q after %d retries: %w",
 					logURL.String(),
-					s.Config.ConnectMaxRetries,
+					s.config.ConnectMaxRetries,
 					err,
 				)
 			}
 
-			time.Sleep(s.Config.ConnectRetryDuration)
+			time.Sleep(s.config.ConnectRetryDuration)
 		} else {
 			s.log.Info().Msg("successfully connected to postgres")
 
@@ -159,18 +161,20 @@ func (s *Postgres) testConnectivity() error {
 }
 
 func (s *Postgres) Init() error {
-	u, err := url.Parse(s.Config.DSN)
+	u, err := url.Parse(s.config.DSN)
 	if err != nil {
 		return fmt.Errorf("invalid postgres dsn: %w", err)
 	}
 
-	s.log.Info().Msg(s.Config.DSN)
+	s.log.Info().Msg(s.config.DSN)
 
 	q := u.Query()
-	q.Set("connect_timeout", strconv.Itoa(s.Config.ConnectTimeout))
+	q.Set("connect_timeout", strconv.Itoa(s.config.ConnectTimeout))
 	u.RawQuery = q.Encode()
 
-	if err := PostgresMigrate(s.log, u.String(), s.confDir+"/migrations"); err != nil {
+	if s.MigrationsDir == "" {
+		s.log.Info().Msg("skipping db migrations; no migrations directory set")
+	} else if err := s.Migrate(u.String(), s.MigrationsDir); err != nil {
 		return fmt.Errorf("running postgres migrations: %w", err)
 	}
 

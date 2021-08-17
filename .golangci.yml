@@ -8,6 +8,7 @@ linters:
     - exhaustivestruct # just a pain, not too useful
     - tagliatelle # restricts json/yaml formatting, not applicable in this app
     - goconst # finds repeated strings >= 3 times; but usually that's OK
+    - goerr113 # all false positives
 linters-settings:
   exhaustive:
     default-signifies-exhaustive: true # enable "default"-case in switch as catch-all for all other options

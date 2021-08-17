@@ -8,7 +8,7 @@ type AppService interface {
 	//
 	// Any error will cause a panic. The app waits for all services to be
 	// Configure'd before calling Init.
-	Configure(ctx *AppContext) error
+	Configure(ctx *AppEnv) error
 
 	// Init is run after all services have been configured. Use this to run
 	// setup that is dependent on other services.

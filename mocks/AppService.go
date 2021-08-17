@@ -27,11 +27,11 @@ func (_m *AppService) Close() error {
 }
 
 // Configure provides a mock function with given fields: ctx
-func (_m *AppService) Configure(ctx *goboot.AppContext) error {
+func (_m *AppService) Configure(ctx *goboot.AppEnv) error {
 	ret := _m.Called(ctx)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*goboot.AppContext) error); ok {
+	if rf, ok := ret.Get(0).(func(*goboot.AppEnv) error); ok {
 		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)

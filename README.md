@@ -2,14 +2,14 @@
 
 **WARNING: This repo not intended for public use and has no versioning applied. So be warned: things can break between commits. This project will have long periods of non-activity with short bursts of high activity based on my schedule. Meaning: don't count on my support.**
 
-`goboot` instantiates an application context for web services. Its main purpose is to create an opinionated base for REST and gRPC services.
+`goboot` instantiates an application environment/context for web services. Its main purpose is to create an opinionated base for REST and gRPC apps.
 
 Goals:
 
 - Easy and consistent service bootstrapping of common services (databases, queues, etc).
 - Panic if bootstrapping a service failed. We don't want to start a broken server.
 - Good logging and error reporting while bootstrapping. Debugging broken boot procedures on infra can be a pain...
-- Avoid higher-level dependencies in `goboot` such as web frameworks, routers, query-builder/ORM or similar.
+- Avoid higher-level dependencies in `goboot` such as web frameworks or routers.
 
 Non-goals:
 

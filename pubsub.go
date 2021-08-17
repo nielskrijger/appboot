@@ -134,8 +134,8 @@ func (s *PubSub) Name() string {
 
 // Configure implements the context.AppService interface and instantiates
 // the client connection to gcloud pubsub.
-func (s *PubSub) Configure(appctx *AppContext) error {
-	s.log = appctx.Log
+func (s *PubSub) Configure(env *AppEnv) error {
+	s.log = env.Log
 	for _, option := range s.options {
 		option(s)
 	}

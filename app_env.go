@@ -8,18 +8,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-// AppContext contains all application-scoped variables.
-type AppContext struct {
+// AppEnv contains all application-scoped variables.
+type AppEnv struct {
 	Config   *viper.Viper
 	Log      zerolog.Logger
 	ConfDir  string
 	Services []AppService
 }
 
-// NewAppContext creates an AppContext by loading configuration settings.
+// NewAppEnv creates an AppEnv by loading configuration settings.
 //
 // Panics if configuration failed to load.
-func NewAppContext(confDir string, env string) *AppContext {
+func NewAppEnv(confDir string, env string) *AppEnv {
 	logger := newLogger()
 	logger.Info().Str("env", env).Msgf("starting server")
 
@@ -37,7 +37,7 @@ func NewAppContext(confDir string, env string) *AppContext {
 		logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
-	return &AppContext{
+	return &AppEnv{
 		ConfDir:  confDir,
 		Config:   cfg,
 		Log:      logger,
@@ -45,7 +45,7 @@ func NewAppContext(confDir string, env string) *AppContext {
 	}
 }
 
-func (ctx *AppContext) AddService(service AppService) {
+func (ctx *AppEnv) AddService(service AppService) {
 	ctx.Services = append(ctx.Services, service)
 }
 
@@ -85,7 +85,7 @@ func SetGlobalLogLevel(level string) {
 }
 
 // Configure sets up service settings.
-func (ctx *AppContext) Configure() {
+func (ctx *AppEnv) Configure() {
 	ctx.Log.Info().Msg("starting configuring app services")
 
 	for _, service := range ctx.Services {
@@ -98,7 +98,7 @@ func (ctx *AppContext) Configure() {
 }
 
 // Init runs all app service initialization.
-func (ctx *AppContext) Init() {
+func (ctx *AppEnv) Init() {
 	ctx.Log.Info().Msg("starting app services init")
 
 	for _, service := range ctx.Services {
@@ -111,7 +111,7 @@ func (ctx *AppContext) Init() {
 }
 
 // Close cleans up any resources held by any app services.
-func (ctx *AppContext) Close() {
+func (ctx *AppEnv) Close() {
 	ctx.Log.Info().Msg("start closing app services")
 
 	for _, service := range ctx.Services {

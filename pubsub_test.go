@@ -52,12 +52,12 @@ func newPubSubEmulatorService(t *testing.T, deadLetter bool) *goboot.PubSub {
 
 	// configure pubsub Service with appcontext
 	s := goboot.NewPubSubService("metrix-io", opts...)
-	appctx := goboot.NewAppContext("./testdata", "")
+	env := goboot.NewAppEnv("./testdata", "")
 
 	testLogger := &goutils.TestLogger{}
-	appctx.Log = zerolog.New(testLogger)
+	env.Log = zerolog.New(testLogger)
 
-	assert.Nil(t, s.Configure(appctx))
+	assert.Nil(t, s.Configure(env))
 
 	// Recreate all topics and subscriptions for each test
 	if err := s.DeleteAll(); err != nil {

@@ -1,2 +1,2 @@
 postgres:
-  dsn: postgres://postgres:secret@localhost:5432/utils?sslmode=disable
+  dsn: postgres://postgres:secret@localhost:5432/goboot?sslmode=disable

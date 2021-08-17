@@ -7,7 +7,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=utils
+      - POSTGRES_DB=goboot
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:

@@ -47,7 +47,7 @@ func TestLogBulk_Success(t *testing.T) {
 
 	goboot.LogBulkStats(zerolog.New(log), bulkIndexer, 2*time.Second)
 
-	assert.Equal(t, "Finished indexing 2 ElasticSearch documents in 2s (1 docs/sec)", log.LastLine()["message"])
+	assert.Equal(t, "finished indexing 2 Elasticsearch documents in 2s (1 docs/sec)", log.LastLine()["message"])
 }
 
 func TestLogBulk_Failed(t *testing.T) {
@@ -59,7 +59,7 @@ func TestLogBulk_Failed(t *testing.T) {
 	goboot.LogBulkStats(zerolog.New(log), bulkIndexer, 100*time.Millisecond)
 
 	assert.Equal(t,
-		"Finished indexing 2 ElasticSearch documents with 3 errors in 100ms (20 docs/sec)",
+		"finished indexing 2 Elasticsearch documents with 3 errors in 100ms (20 docs/sec)",
 		log.LastLine()["message"],
 	)
 }

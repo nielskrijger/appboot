@@ -54,7 +54,7 @@ func (s *Redis) Name() string {
 	return "redis"
 }
 
-func (s *Redis) Configure(ctx *AppContext) error {
+func (s *Redis) Configure(ctx *AppEnv) error {
 	s.log = ctx.Log
 	redisCfg := &RedisConfig{}
 
