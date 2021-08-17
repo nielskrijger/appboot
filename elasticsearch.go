@@ -123,6 +123,7 @@ func (s *Elasticsearch) testConnectivity(ctx *AppEnv) error {
 	return nil
 }
 
+// Init runs the Elasticsearch migrations.
 func (s *Elasticsearch) Init() error {
 	if err := s.Migrate(context.Background()); err != nil {
 		return fmt.Errorf("running Elasticsearch migrations: %w", err)

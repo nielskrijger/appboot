@@ -52,9 +52,15 @@ func (s *Elasticsearch) Migrate(ctx context.Context) error {
 	return s.runMigrations(newMigrations)
 }
 
-func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigration []*ElasticsearchMigration, err error) {
+// getNewMigrations retrieves the migration history and returns all migrations
+// that have not run yet. Returns an error in the following scenarios:
+//
+// - The migration history has an unknown migration ID.
+// - One of the new migrations has not been added at the back.
+// - The migrations are ordered differently than the migration history.
+func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigrations []*ElasticsearchMigration, err error) {
 	var records []MigrationRecord
-	if err = s.searchAll(ctx, s.MigrationsIndex, &records); err != nil {
+	if err = s.getMigrationHistory(ctx, &records); err != nil {
 		return nil, err
 	}
 
@@ -62,13 +68,13 @@ func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigration []*E
 		if i < len(records) {
 			if migration.ID != records[i].ID {
 				return nil, fmt.Errorf(
-					"unexpected migration id %q, was expecting id %q (you can only add newMigration migrations at the end)",
+					"unexpected migration id %q, was expecting id %q (you can only add new migrations at the end)",
 					migration.ID,
 					records[i].ID,
 				)
 			}
 		} else {
-			newMigration = append(newMigration, migration)
+			newMigrations = append(newMigrations, migration)
 		}
 	}
 
@@ -79,7 +85,7 @@ func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigration []*E
 		)
 	}
 
-	return newMigration, nil
+	return newMigrations, nil
 }
 
 func (s *Elasticsearch) runMigrations(migrations []*ElasticsearchMigration) error {
@@ -181,15 +187,15 @@ func (s *Elasticsearch) IndexDelete(ctx context.Context, idx string) error {
 	return nil
 }
 
-// searchAll retrieves the first 10.000 documents from the index.
-func (s *Elasticsearch) searchAll(ctx context.Context, idx string, r interface{}) (err error) {
+// getMigrationHistory retrieves the first 10.000 documents from the index.
+func (s *Elasticsearch) getMigrationHistory(ctx context.Context, r interface{}) (err error) {
 	req := esapi.SearchRequest{
-		Index: []string{idx},
+		Index: []string{s.MigrationsIndex},
 	}
 
 	res, err := req.Do(ctx, s.Client)
 	if err != nil {
-		return fmt.Errorf("search all ES documents in index %q: %w", idx, err)
+		return fmt.Errorf("search all ES documents in index %q: %w", s.MigrationsIndex, err)
 	}
 
 	if res.StatusCode != http.StatusOK {
