@@ -187,7 +187,7 @@ func (s *Elasticsearch) IndexDelete(ctx context.Context, idx string) error {
 	return nil
 }
 
-// getMigrationHistory retrieves the first 10.000 documents from the index.
+// getMigrationHistory retrieves all migrations that have run.
 func (s *Elasticsearch) getMigrationHistory(ctx context.Context, r interface{}) (err error) {
 	req := esapi.SearchRequest{
 		Index: []string{s.MigrationsIndex},
