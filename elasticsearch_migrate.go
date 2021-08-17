@@ -53,10 +53,10 @@ func (s *Elasticsearch) Migrate(ctx context.Context) error {
 }
 
 // getNewMigrations retrieves the migration history and returns all migrations
-// that have not run yet. Returns an error in the following scenarios:
+// that haven't run yet. Returns an error in the following scenarios:
 //
 // - The migration history has an unknown migration ID.
-// - One of the new migrations has not been added at the back.
+// - One of the new migrations has not been added to the back.
 // - The migrations are ordered differently than the migration history.
 func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigrations []*ElasticsearchMigration, err error) {
 	var records []MigrationRecord
