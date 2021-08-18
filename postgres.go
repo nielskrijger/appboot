@@ -166,8 +166,6 @@ func (s *Postgres) Init() error {
 		return fmt.Errorf("invalid postgres dsn: %w", err)
 	}
 
-	s.log.Info().Msg(s.config.DSN)
-
 	q := u.Query()
 	q.Set("connect_timeout", strconv.Itoa(s.config.ConnectTimeout))
 	u.RawQuery = q.Encode()
