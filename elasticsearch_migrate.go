@@ -5,12 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7/esapi"
-	"github.com/tidwall/gjson"
 )
 
 type ElasticsearchMigration struct {
@@ -205,46 +203,4 @@ func (s *Elasticsearch) getMigrationHistory(ctx context.Context, r interface{}) 
 	err = s.ParseResponse(res, &r)
 
 	return err
-}
-
-// ParseResponse decodes the Elasticsearch response body. The response body may
-// contain errors which is why it's advisable to always parse the response even
-// you're not interested in the actual body.
-//
-// If r is nil does not decode non-error response body.
-func (s *Elasticsearch) ParseResponse(res *esapi.Response, v interface{}) (err error) {
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			s.log.Warn().Err(err).Msg("error closing the Elasticsearch response reader")
-		}
-	}(res.Body)
-
-	if res.IsError() {
-		var e map[string]interface{}
-		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return fmt.Errorf("parsing ES response body: %w", err)
-		}
-
-		// Print the response status and error information.
-		return fmt.Errorf("[%s] %s: %s",
-			res.Status(),
-			e["error"].(map[string]interface{})["type"],
-			e["error"].(map[string]interface{})["reason"],
-		)
-	}
-
-	if v != nil {
-		result, err := io.ReadAll(res.Body)
-		if err != nil {
-			return fmt.Errorf("reading ES response body: %w", err)
-		}
-
-		results := gjson.GetBytes(result, "hits.hits.#._source").Raw
-		if err := json.Unmarshal([]byte(results), &v); err != nil {
-			return fmt.Errorf("parsing ES response body: %w", err)
-		}
-	}
-
-	return nil
 }

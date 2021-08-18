@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
 	elasticsearch7 "github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/elastic/go-elasticsearch/v7/estransport"
 	"github.com/rs/zerolog"
+	"github.com/tidwall/gjson"
 )
 
 var (
@@ -134,4 +137,62 @@ func (s *Elasticsearch) Init() error {
 
 func (s *Elasticsearch) Close() error {
 	return nil
+}
+
+// ParseResponse decodes the Elasticsearch response body. The response body may
+// contain errors which is why it's advisable to always parse the response even
+// you're not interested in the actual body.
+//
+// If r is nil does not decode non-error response body.
+//
+// Closes the response body when done.
+func (s *Elasticsearch) ParseResponse(res *esapi.Response, v interface{}) (err error) {
+	b, err := s.ParseResponseBytes(res)
+	if err != nil {
+		return err
+	}
+
+	if v != nil {
+		results := gjson.GetBytes(b, "hits.hits.#._source").Raw
+		if err := json.Unmarshal([]byte(results), &v); err != nil {
+			return fmt.Errorf("parsing ES response body: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ParseResponseBytes parses the Elasticsearch response body to a byte array.
+// The response body may contain errors which is why it's advisable to always
+// parse the response even you're not interested in the actual body.
+//
+// Closes the response body when done.
+func (s *Elasticsearch) ParseResponseBytes(res *esapi.Response) ([]byte, error) {
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			s.log.Warn().Err(err).Msg("error closing the Elasticsearch response reader")
+		}
+	}(res.Body)
+
+	if res.IsError() {
+		var e map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			return nil, fmt.Errorf("parsing ES response body: %w", err)
+		}
+
+		// Print the response status and error information.
+		return nil, fmt.Errorf("[%s] %s: %s",
+			res.Status(),
+			e["error"].(map[string]interface{})["type"],
+			e["error"].(map[string]interface{})["reason"],
+		)
+	}
+
+	result, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading ES response body: %w", err)
+	}
+
+	return result, nil
 }
