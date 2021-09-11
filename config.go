@@ -58,7 +58,7 @@ func LoadConfig(log zerolog.Logger, dir string, env string) (*viper.Viper, error
 	}
 
 	// Viper ignores environment variables when unmarshalling if no defaults are set.
-	// This should that, see also https://github.com/spf13/viper/issues/188
+	// This should fix that in some scenarios, see also https://github.com/spf13/viper/issues/188
 	for _, key := range v.AllKeys() {
 		val := v.Get(key)
 		v.Set(key, val)

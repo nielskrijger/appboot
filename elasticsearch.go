@@ -44,15 +44,13 @@ func (s *Elasticsearch) Name() string {
 func (s *Elasticsearch) Configure(ctx *AppEnv) error {
 	s.log = ctx.Log
 
-	// unmarshal config and set defaults
-	s.Config = &elasticsearch7.Config{}
-
-	if !ctx.Config.InConfig("elasticsearch") {
-		return errMissingElasticsearchConfig
-	}
-
-	if err := ctx.Config.Sub("elasticsearch").Unmarshal(&s.Config); err != nil {
-		return fmt.Errorf("parsing elasticsearch configuration: %w", err)
+	// Fetch config from viper. Avoid unmarshal directly into elasticsearch7.Config
+	// as it doesn't work with env vars:
+	// https://github.com/spf13/viper/issues/761
+	s.Config = &elasticsearch7.Config{
+		Addresses: ctx.Config.GetStringSlice("elasticsearch.addresses"),
+		Username:  ctx.Config.GetString("elasticsearch.username"),
+		Password:  ctx.Config.GetString("elasticsearch.password"),
 	}
 
 	if len(s.Config.Addresses) == 0 {

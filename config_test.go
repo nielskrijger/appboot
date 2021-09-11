@@ -63,4 +63,6 @@ func TestConfig_OverrideEnvVariables(t *testing.T) {
 	err = cfg.Sub("vars").Unmarshal(cfgStruct)
 	assert.Nil(t, err)
 	assert.Equal(t, "from-env", cfgStruct.Filename)
+
+	os.Clearenv()
 }

@@ -2,6 +2,7 @@ package goboot_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/nielskrijger/goboot"
@@ -32,10 +33,18 @@ func TestElasticsearch_Success(t *testing.T) {
 	assert.NotNil(t, s.Config)
 }
 
-func TestElasticsearch_ErrorMissingConfig(t *testing.T) {
+func TestElasticsearch_SuccessEnvs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	s := &goboot.Elasticsearch{}
-	err := s.Configure(goboot.NewAppEnv("./testdata/elasticsearch", ""))
-	assert.EqualError(t, err, "missing \"elasticsearch\" configuration")
+	_ = os.Setenv("ELASTICSEARCH_USERNAME", "elastic")
+	_ = os.Setenv("ELASTICSEARCH_PASSWORD", "secret")
+
+	err := s.Configure(goboot.NewAppEnv("./testdata/elasticsearch", "using-env-vars"))
+	assert.Nil(t, err)
+	os.Clearenv()
 }
 
 func TestElasticsearch_ErrorNoAddresses(t *testing.T) {

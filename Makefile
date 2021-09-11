@@ -14,7 +14,11 @@ integration:
 
 .PHONY: humantest
 humantest:
-	LOG_HUMAN=true richgo test -v -p=1 -timeout=60s $(PKGS)
+ifndef run
+	LOG_DEBUG=true LOG_HUMAN=true richgo test -v -p=1 -timeout=60s $(PKGS)
+else
+	LOG_DEBUG=true LOG_HUMAN=true richgo test -v -p=1 -timeout=60s $(PKGS) -run $(run)
+endif
 
 .PHONY: coverage
 coverage:
