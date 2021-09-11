@@ -16,10 +16,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-var (
-	errMissingElasticsearchConfig    = errors.New("missing \"elasticsearch\" configuration")
-	errMissingElasticsearchAddresses = errors.New("config \"elasticsearch.addresses\" is required")
-)
+var errMissingElasticsearchAddresses = errors.New("config \"elasticsearch.addresses\" is required")
 
 const defaultMigrationsIndex = "migrations"
 
