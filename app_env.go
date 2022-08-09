@@ -51,11 +51,13 @@ func (ctx *AppEnv) AddService(service AppService) {
 
 // newLogger configures a new zerolog logger.
 //
-// By default returns a production logger, to debug set env var LOG_LEVEL=debug and for
-// colorization set LOG_HUMAN=true.
+// By default, returns a production logger. For debugging set the following values:
+//
+//   - LOG_LEVEL=debug
+//   - LOG_HUMAN=true
 //
 // The LOG_* env vars can be defined in config files using "log.level" and "log.human"
-// but will only take affect after the config files are loaded while LOG_* will takes
+// but will only take effect after the config files are loaded while LOG_* will takes
 // immediate effect.
 func newLogger() zerolog.Logger {
 	// use env var instead of config because no config is available at startup
@@ -71,7 +73,7 @@ func newLogger() zerolog.Logger {
 		return log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
-	return zerolog.New(os.Stdout)
+	return zerolog.New(os.Stdout).With().Timestamp().Logger()
 }
 
 // SetGlobalLogLevel updates the log level, panics if log level is unknown.
