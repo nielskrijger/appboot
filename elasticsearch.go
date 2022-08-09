@@ -171,17 +171,8 @@ func (s *Elasticsearch) ParseResponseBytes(res *esapi.Response) ([]byte, error) 
 	}(res.Body)
 
 	if res.IsError() {
-		var e map[string]interface{}
-		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return nil, fmt.Errorf("parsing ES response body: %w", err)
-		}
-
 		// Print the response status and error information.
-		return nil, fmt.Errorf("[%s] %s: %s",
-			res.Status(),
-			e["error"].(map[string]interface{})["type"],
-			e["error"].(map[string]interface{})["reason"],
-		)
+		return nil, fmt.Errorf("elasticsearch error response: %s", res.String())
 	}
 
 	result, err := io.ReadAll(res.Body)
