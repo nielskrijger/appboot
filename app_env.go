@@ -73,7 +73,7 @@ func newLogger() zerolog.Logger {
 		return log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
-	return zerolog.New(os.Stdout).With().Timestamp().Logger()
+	return zerolog.New(os.Stdout)
 }
 
 // SetGlobalLogLevel updates the log level, panics if log level is unknown.
