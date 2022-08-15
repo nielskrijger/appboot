@@ -1,4 +1,4 @@
-package goboot
+package pgboot
 
 import (
 	"database/sql"

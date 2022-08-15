@@ -1,5 +1,5 @@
 //nolint:wrapcheck
-package goboot_test
+package esboot_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7/esapi"
-	"github.com/nielskrijger/goboot"
+	"github.com/nielskrijger/goboot/esboot"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 )
@@ -19,17 +19,17 @@ func TestElasticsearchMigrate_Success(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	s := &goboot.Elasticsearch{
-		Migrations: []*goboot.ElasticsearchMigration{
+	s := &esboot.Elasticsearch{
+		Migrations: []*esboot.ElasticsearchMigration{
 			{
 				ID: "1",
-				Migrate: func(es *goboot.Elasticsearch) error {
+				Migrate: func(es *esboot.Elasticsearch) error {
 					return es.IndexCreate(context.Background(), "test")
 				},
 			},
 			{
 				ID: "2",
-				Migrate: func(es *goboot.Elasticsearch) error {
+				Migrate: func(es *esboot.Elasticsearch) error {
 					req := &esapi.IndexRequest{
 						Index:      "test",
 						DocumentID: "1",
@@ -43,7 +43,7 @@ func TestElasticsearchMigrate_Success(t *testing.T) {
 			},
 			{
 				ID: "3",
-				Migrate: func(es *goboot.Elasticsearch) error {
+				Migrate: func(es *esboot.Elasticsearch) error {
 					req := &esapi.IndexRequest{
 						Index:      "test",
 						DocumentID: "2",
@@ -78,11 +78,11 @@ func TestElasticsearchMigrate_RunOnce(t *testing.T) {
 
 	runCount := 0
 
-	s := &goboot.Elasticsearch{
-		Migrations: []*goboot.ElasticsearchMigration{
+	s := &esboot.Elasticsearch{
+		Migrations: []*esboot.ElasticsearchMigration{
 			{
 				ID: "1",
-				Migrate: func(es *goboot.Elasticsearch) error {
+				Migrate: func(es *esboot.Elasticsearch) error {
 					runCount++
 
 					return es.IndexCreate(context.Background(), "test") //nolint:wrapcheck
@@ -104,11 +104,11 @@ func TestElasticsearchMigrate_ErrorWhenOutOfOrder(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	s := &goboot.Elasticsearch{
-		Migrations: []*goboot.ElasticsearchMigration{
+	s := &esboot.Elasticsearch{
+		Migrations: []*esboot.ElasticsearchMigration{
 			{
 				ID: "2",
-				Migrate: func(es *goboot.Elasticsearch) error {
+				Migrate: func(es *esboot.Elasticsearch) error {
 					return es.IndexCreate(context.Background(), "test") //nolint:wrapcheck
 				},
 			},
@@ -131,8 +131,8 @@ func TestElasticsearchMigrate_ErrorMigrationMissing(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	s := &goboot.Elasticsearch{
-		Migrations: []*goboot.ElasticsearchMigration{},
+	s := &esboot.Elasticsearch{
+		Migrations: []*esboot.ElasticsearchMigration{},
 	}
 	setupElasticsearchEnv(t, s)
 

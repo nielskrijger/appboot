@@ -1,4 +1,4 @@
-package goboot
+package esboot
 
 import (
 	"bytes"

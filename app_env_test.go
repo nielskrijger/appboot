@@ -5,14 +5,14 @@ import (
 
 	"github.com/nielskrijger/goboot"
 	"github.com/nielskrijger/goboot/mocks"
-	"github.com/nielskrijger/goutils"
+	"github.com/nielskrijger/goboot/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAppContext_Logger(t *testing.T) {
 	ctx := goboot.NewAppEnv("./testdata", "")
-	testLogger := &goutils.TestLogger{}
+	testLogger := &test.Logger{}
 	ctx.Log = zerolog.New(testLogger)
 
 	ctx.Configure()

@@ -1,10 +1,11 @@
-package goboot_test
+package pgboot_test
 
 import (
 	"testing"
 
 	"github.com/nielskrijger/goboot"
-	"github.com/nielskrijger/goutils"
+	"github.com/nielskrijger/goboot/pgboot"
+	"github.com/nielskrijger/goboot/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,8 +20,8 @@ func TestPostgresMigrate_Success(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	s := &goboot.Postgres{MigrationsDir: "./testdata/postgres/migrations"}
-	env := goboot.NewAppEnv("./testdata/postgres", "valid")
+	s := &pgboot.Postgres{MigrationsDir: "./testdata/migrations"}
+	env := goboot.NewAppEnv("./testdata", "valid")
 	assert.Nil(t, s.Configure(env))
 	_, _ = s.DB.Exec("DROP TABLE IF EXISTS test_table")
 	_, _ = s.DB.Exec("DROP TABLE IF EXISTS schema_migrations")
@@ -39,9 +40,9 @@ func TestPostgresMigrate_SkipMigrationsWhenDirEmpty(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	log := &goutils.TestLogger{}
-	s := &goboot.Postgres{}
-	env := goboot.NewAppEnv("./testdata/postgres", "valid")
+	log := &test.Logger{}
+	s := &pgboot.Postgres{}
+	env := goboot.NewAppEnv("./testdata", "valid")
 	env.Log = zerolog.New(log)
 	assert.Nil(t, s.Configure(env))
 	assert.Nil(t, s.Init())

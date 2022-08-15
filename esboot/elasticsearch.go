@@ -1,4 +1,4 @@
-package goboot
+package esboot
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	elasticsearch7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/elastic/go-elasticsearch/v7/estransport"
+	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 	"github.com/tidwall/gjson"
 )
@@ -38,7 +39,7 @@ func (s *Elasticsearch) Name() string {
 	return "elasticsearch"
 }
 
-func (s *Elasticsearch) Configure(ctx *AppEnv) error {
+func (s *Elasticsearch) Configure(ctx *goboot.AppEnv) error {
 	s.log = ctx.Log
 
 	// Fetch config from viper. Avoid unmarshal directly into elasticsearch7.Config
@@ -91,7 +92,7 @@ func (s *Elasticsearch) Configure(ctx *AppEnv) error {
 	return s.testConnectivity(ctx)
 }
 
-func (s *Elasticsearch) testConnectivity(ctx *AppEnv) error {
+func (s *Elasticsearch) testConnectivity(ctx *goboot.AppEnv) error {
 	res, err := s.Client.Info()
 	if err != nil {
 		return fmt.Errorf("fetch elasticsearch cluster info: %w", err)

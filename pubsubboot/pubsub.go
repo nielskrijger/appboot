@@ -1,9 +1,10 @@
-package goboot
+package pubsubboot
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nielskrijger/goboot"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -134,7 +135,7 @@ func (s *PubSub) Name() string {
 
 // Configure implements the context.AppService interface and instantiates
 // the client connection to gcloud pubsub.
-func (s *PubSub) Configure(env *AppEnv) error {
+func (s *PubSub) Configure(env *goboot.AppEnv) error {
 	s.log = env.Log
 	for _, option := range s.options {
 		option(s)
@@ -512,7 +513,7 @@ func TrimLeftBytes(str string, maxBytes int) string {
 		return res
 	}
 
-	// remove the the last invalid rune
+	// remove the last invalid rune
 	lastRune := maxBytes
 	for lastRune > 0 && !utf8.RuneStart(str[lastRune]) {
 		lastRune--

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/nielskrijger/goboot"
-	"github.com/nielskrijger/goutils"
+	"github.com/nielskrijger/goboot/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ func TestConfig_OverrideEnvConfig(t *testing.T) {
 }
 
 func TestConfig_LogEmptyEnv(t *testing.T) {
-	testLogger := &goutils.TestLogger{}
+	testLogger := &test.Logger{}
 
 	_, err := goboot.LoadConfig(zerolog.New(testLogger), "./testdata", "")
 
@@ -37,7 +37,7 @@ func TestConfig_LogEmptyEnv(t *testing.T) {
 }
 
 func TestConfig_ErrorInvalidEnv(t *testing.T) {
-	testLogger := &goutils.TestLogger{}
+	testLogger := &test.Logger{}
 
 	_, err := goboot.LoadConfig(zerolog.New(testLogger), "./testdata", "unknown")
 

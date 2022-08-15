@@ -1,8 +1,9 @@
-package goboot
+package redisboot
 
 import (
 	"errors"
 	"fmt"
+	"github.com/nielskrijger/goboot"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -54,7 +55,7 @@ func (s *Redis) Name() string {
 	return "redis"
 }
 
-func (s *Redis) Configure(ctx *AppEnv) error {
+func (s *Redis) Configure(ctx *goboot.AppEnv) error {
 	s.log = ctx.Log
 	redisCfg := &RedisConfig{}
 

@@ -1,4 +1,4 @@
-package goboot
+package pgboot
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-pg/pg"
+	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 )
 
@@ -71,7 +72,7 @@ func (s *Postgres) Name() string {
 
 // Configure connects to postgres and logs connection info for
 // debugging connectivity issues.
-func (s *Postgres) Configure(ctx *AppEnv) error {
+func (s *Postgres) Configure(ctx *goboot.AppEnv) error {
 	s.log = ctx.Log
 	s.confDir = ctx.ConfDir
 
