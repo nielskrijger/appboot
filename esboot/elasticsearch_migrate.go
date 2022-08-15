@@ -186,7 +186,7 @@ func (s *Elasticsearch) IndexDelete(ctx context.Context, idx string) error {
 }
 
 // getMigrationHistory retrieves all migrations that have run.
-func (s *Elasticsearch) getMigrationHistory(ctx context.Context, r interface{}) (err error) {
+func (s *Elasticsearch) getMigrationHistory(ctx context.Context, r any) (err error) {
 	req := esapi.SearchRequest{
 		Index: []string{s.MigrationsIndex},
 	}

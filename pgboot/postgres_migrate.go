@@ -18,7 +18,7 @@ import (
 )
 
 type PostgresMigratePrinter interface {
-	Printf(format string, v ...interface{})
+	Printf(format string, v ...any)
 }
 
 // DatabaseLogger implements the Logger interface of golang-migrate.
@@ -27,7 +27,7 @@ type logger struct {
 }
 
 // Printf is like fmt.Printf.
-func (log *logger) Printf(format string, v ...interface{}) {
+func (log *logger) Printf(format string, v ...any) {
 	log.logger.Info().Msgf(format, v...)
 }
 

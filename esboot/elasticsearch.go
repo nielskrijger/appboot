@@ -142,7 +142,7 @@ func (s *Elasticsearch) Close() error {
 // If r is nil does not decode non-error response body.
 //
 // Closes the response body when done.
-func (s *Elasticsearch) ParseResponse(res *esapi.Response, v interface{}) (err error) {
+func (s *Elasticsearch) ParseResponse(res *esapi.Response, v any) (err error) {
 	b, err := s.ParseResponseBytes(res)
 	if err != nil {
 		return err

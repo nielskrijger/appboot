@@ -354,7 +354,7 @@ func (s *PubSub) DeleteAll() error {
 //
 // If the error was not a cancelled client connection the given error is wrapped
 // with specified message.
-func translateError(err error, wrapMsg string, args ...interface{}) error {
+func translateError(err error, wrapMsg string, args ...any) error {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Canceled {
@@ -466,7 +466,7 @@ func (s *PubSub) ReceiveNr(ctx context.Context, channel string, nrOfMessages int
 //
 // Google's pubsub batching is disabled by default which is only useful in very high-throughput
 // use cases.
-func (s *PubSub) PublishEvent(ctx context.Context, channel string, eventName string, payload interface{}) error {
+func (s *PubSub) PublishEvent(ctx context.Context, channel string, eventName string, payload any) error {
 	ch := s.Channels[channel]
 	if ch == nil {
 		return errors.Errorf("channel %q not found", channel)
@@ -494,7 +494,7 @@ func (s *PubSub) PublishEvent(ctx context.Context, channel string, eventName str
 
 // TryPublishEvent is the same as PublishEvent but logs any error rather than
 // returning it.
-func (s *PubSub) TryPublishEvent(ctx context.Context, channel string, eventName string, payload interface{}) {
+func (s *PubSub) TryPublishEvent(ctx context.Context, channel string, eventName string, payload any) {
 	if err := s.PublishEvent(ctx, channel, eventName, payload); err != nil {
 		s.log.Error().Err(err).Msgf("failed to publish event %q", eventName)
 	}
