@@ -2,7 +2,7 @@
 
 **WARNING: This repo not intended for public use and has no versioning applied. So be warned: things can break between commits. This project will have long periods of non-activity with short bursts of high activity based on my schedule. Meaning: don't count on my support.**
 
-`goboot` instantiates an application environment/context for web services. Its main purpose is to create an opinionated base for REST and gRPC apps.
+`goboot` instantiates an application environment for web services. Its main purpose is to create an opinionated base for REST and gRPC apps.
 
 Goals:
 
@@ -26,11 +26,20 @@ It's quite likely the set of chosen libraries here would not fit your project's 
 
 ## Development
 
-This codebase contains a combination of integration and unit tests.
+This codebase contains integration tests that depend on real databases.
 
-To run all of them in a human-readable way use:
+Ensure databases are running:
 
 ```bash
+$ docker compose up
+```
+
+And in a different tab:
+
+```bash
+$ make test
+
+# or if you have richgo installed run:
 $ make humantest
 ```
 
