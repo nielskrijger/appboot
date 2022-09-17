@@ -11,7 +11,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-type ElasticsearchMigration struct {
+type Migration struct {
 	ID      string
 	Migrate func(es *Elasticsearch) error
 }
@@ -42,7 +42,7 @@ func (s *Elasticsearch) Migrate(ctx context.Context) error {
 	}
 
 	if len(s.Migrations) == 0 {
-		s.log.Info().Msg("no Elasticsearch migrations found, skipping")
+		s.log.Info().Msg("Elasticsearch is up-to-date")
 
 		return nil
 	}
@@ -56,9 +56,9 @@ func (s *Elasticsearch) Migrate(ctx context.Context) error {
 // - The migration history has an unknown migration ID.
 // - One of the new migrations has not been added to the back.
 // - The migrations are ordered differently than the migration history.
-func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigrations []*ElasticsearchMigration, err error) {
+func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigrations []*Migration, err error) {
 	var records []MigrationRecord
-	if err = s.getMigrationHistory(ctx, &records); err != nil {
+	if err = s.getMigrations(ctx, &records); err != nil {
 		return nil, err
 	}
 
@@ -86,12 +86,12 @@ func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigrations []*
 	return newMigrations, nil
 }
 
-func (s *Elasticsearch) runMigrations(migrations []*ElasticsearchMigration) error {
+func (s *Elasticsearch) runMigrations(migrations []*Migration) error {
 	for _, migration := range migrations {
 		start := time.Now()
 
 		if err := migration.Migrate(s); err != nil {
-			return fmt.Errorf("migrations %q failed: %w", migration.ID, err)
+			return fmt.Errorf("migration %q failed: %w", migration.ID, err)
 		}
 
 		elapsed := time.Since(start)
@@ -185,8 +185,8 @@ func (s *Elasticsearch) IndexDelete(ctx context.Context, idx string) error {
 	return nil
 }
 
-// getMigrationHistory retrieves all migrations that have run.
-func (s *Elasticsearch) getMigrationHistory(ctx context.Context, r any) (err error) {
+// getMigrations retrieves all migrations that have run.
+func (s *Elasticsearch) getMigrations(ctx context.Context, r any) (err error) {
 	req := esapi.SearchRequest{
 		Index: []string{s.MigrationsIndex},
 	}

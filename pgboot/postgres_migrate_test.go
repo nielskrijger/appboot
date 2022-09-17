@@ -16,10 +16,6 @@ type Record struct {
 }
 
 func TestPostgresMigrate_Success(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &pgboot.Postgres{MigrationsDir: "./testdata/migrations"}
 	env := goboot.NewAppEnv("./testdata", "valid")
 	assert.Nil(t, s.Configure(env))
@@ -36,10 +32,6 @@ func TestPostgresMigrate_Success(t *testing.T) {
 }
 
 func TestPostgresMigrate_SkipMigrationsWhenDirEmpty(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	log := &test.Logger{}
 	s := &pgboot.Postgres{}
 	env := goboot.NewAppEnv("./testdata", "valid")

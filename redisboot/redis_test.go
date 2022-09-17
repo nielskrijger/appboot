@@ -9,10 +9,6 @@ import (
 )
 
 func TestRedis_Success(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &redisboot.Redis{}
 	assert.Nil(t, s.Configure(goboot.NewAppEnv("./testdata", "valid")))
 	assert.Nil(t, s.Init())
@@ -22,7 +18,7 @@ func TestRedis_Success(t *testing.T) {
 func TestRedis_ErrorMissingConfig(t *testing.T) {
 	s := &redisboot.Redis{}
 	err := s.Configure(goboot.NewAppEnv("./testdata", ""))
-	assert.EqualError(t, err, "missing redis configuration")
+	assert.EqualError(t, err, "missing Redis configuration")
 }
 
 func TestRedis_ErrorEmptyURL(t *testing.T) {
@@ -32,10 +28,6 @@ func TestRedis_ErrorEmptyURL(t *testing.T) {
 }
 
 func TestRedis_ErrorOnConnect(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &redisboot.Redis{}
 	err := s.Configure(goboot.NewAppEnv("./testdata", "invalid"))
 	assert.EqualError(t, err, "failed to connect to redis after 5 retries: dial tcp 1.2.3.4:6379: i/o timeout")

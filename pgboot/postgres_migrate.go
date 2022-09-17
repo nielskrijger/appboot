@@ -8,13 +8,13 @@ import (
 
 	"github.com/golang-migrate/migrate/v4" //nolint
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/rs/zerolog"
 
 	// Load file-loader for migration files.
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	// Required dependency for postgres driver.
 	_ "github.com/lib/pq"
-	"github.com/rs/zerolog"
 )
 
 type PostgresMigratePrinter interface {
@@ -40,14 +40,14 @@ func (log *logger) Verbose() bool {
 //
 // Panics if anything went wrong.
 func (s *Postgres) Migrate(dsn string, migrations string) error {
-	ctxLog := logger{logger: s.log}
+	log := logger{logger: s.log}
 
 	dir, err := filepath.Abs(migrations)
 	if err != nil {
 		return fmt.Errorf("reading migrations path: %w", err)
 	}
 
-	ctxLog.Printf("running database migrations from %s", dir)
+	log.Printf("running Postgres migrations from %s", dir)
 
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
@@ -66,7 +66,7 @@ func (s *Postgres) Migrate(dsn string, migrations string) error {
 
 	driver, err := p.Open(dsn)
 	if err != nil {
-		return fmt.Errorf("open postgres connection for golang-migrate: %w", err)
+		return fmt.Errorf("open Postgres connection for golang-migrate: %w", err)
 	}
 
 	// setup migrations connection
@@ -76,20 +76,20 @@ func (s *Postgres) Migrate(dsn string, migrations string) error {
 		driver,
 	)
 	if err != nil {
-		return fmt.Errorf("connecting to postgres for migrations: %w", err)
+		return fmt.Errorf("connecting to Postgres for migrations: %w", err)
 	}
 
-	m.Log = &ctxLog
+	m.Log = &log
 
 	err = m.Up()
 	if err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			ctxLog.Printf("database is up-to-date")
+			log.Printf("Postgres database is up-to-date")
 		} else {
-			return fmt.Errorf("running migrations: %w", err)
+			return fmt.Errorf("running Postgres migrations: %w", err)
 		}
 	} else {
-		ctxLog.Printf("completed database migrations")
+		log.Printf("completed Postgres migrations")
 	}
 
 	return nil

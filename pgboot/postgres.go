@@ -18,8 +18,8 @@ const (
 )
 
 var (
-	errMissingPostgresConfig = errors.New("missing postgres configuration")
-	errMissingPostgresDSN    = errors.New("config \"postgres.dsn\" is required")
+	errMissingConfig = errors.New("missing Postgres configuration")
+	errMissingDSN    = errors.New("config \"postgres.dsn\" is required")
 )
 
 type PostgresConfig struct {
@@ -67,28 +67,27 @@ type healtcheckResult struct {
 }
 
 func (s *Postgres) Name() string {
-	return "postgres"
+	return "Postgres"
 }
 
-// Configure connects to postgres and logs connection info for
-// debugging connectivity issues.
-func (s *Postgres) Configure(ctx *goboot.AppEnv) error {
-	s.log = ctx.Log
-	s.confDir = ctx.ConfDir
+// Configure connects to postgres.
+func (s *Postgres) Configure(env *goboot.AppEnv) error {
+	s.log = env.Log
+	s.confDir = env.ConfDir
 
 	// unmarshal config and set defaults
 	s.config = &PostgresConfig{}
 
-	if !ctx.Config.InConfig("postgres") {
-		return errMissingPostgresConfig
+	if !env.Config.InConfig("postgres") {
+		return errMissingConfig
 	}
 
-	if !ctx.Config.IsSet("postgres.dsn") {
-		return errMissingPostgresDSN
+	if !env.Config.IsSet("postgres.dsn") {
+		return errMissingDSN
 	}
 
-	if err := ctx.Config.Sub("postgres").Unmarshal(s.config); err != nil {
-		return fmt.Errorf("parsing postgres configuration: %w", err)
+	if err := env.Config.Sub("postgres").Unmarshal(s.config); err != nil {
+		return fmt.Errorf("parsing Postgres configuration: %w", err)
 	}
 
 	if s.config.ConnectMaxRetries == 0 {
@@ -105,7 +104,7 @@ func (s *Postgres) Configure(ctx *goboot.AppEnv) error {
 	}
 
 	// print SQL queries when debug logging is on
-	if ctx.Log.Debug().Enabled() {
+	if env.Log.Debug().Enabled() {
 		s.DB.AddQueryHook(&dbLogger{log: s.log})
 	}
 
@@ -116,7 +115,7 @@ func (s *Postgres) testConnectivity() error {
 	// parse url for logging purposes
 	logURL, err := url.Parse(s.config.DSN)
 	if err != nil {
-		return fmt.Errorf("invalid postgres dsn: %w", err)
+		return fmt.Errorf("invalid Postgres dsn: %w", err)
 	}
 
 	logURL.User = url.UserPassword(logURL.User.Username(), "REDACTED")
@@ -125,7 +124,7 @@ func (s *Postgres) testConnectivity() error {
 	// parse
 	pgOptions, err := pg.ParseURL(s.config.DSN)
 	if err != nil {
-		return fmt.Errorf("could not parse postgres DSN: %w", err)
+		return fmt.Errorf("could not parse Postgres DSN: %w", err)
 	}
 
 	pgOptions.DialTimeout = time.Duration(s.config.ConnectTimeout) * time.Second
@@ -140,10 +139,10 @@ func (s *Postgres) testConnectivity() error {
 					Warn().
 					Err(err).
 					Str("url", logURL.String()).
-					Msgf("failed to connect to postgres, retrying in %s", s.config.ConnectRetryDuration)
+					Msgf("failed to connect to Postgres, retrying in %s", s.config.ConnectRetryDuration)
 			} else {
 				return fmt.Errorf(
-					"failed to connect to postgres %q after %d retries: %w",
+					"failed to connect to Postgres %q after %d retries: %w",
 					logURL.String(),
 					s.config.ConnectMaxRetries,
 					err,
@@ -152,7 +151,7 @@ func (s *Postgres) testConnectivity() error {
 
 			time.Sleep(s.config.ConnectRetryDuration)
 		} else {
-			s.log.Info().Msg("successfully connected to postgres")
+			s.log.Info().Msg("successfully connected to Postgres")
 
 			break
 		}
@@ -174,7 +173,7 @@ func (s *Postgres) Init() error {
 	if s.MigrationsDir == "" {
 		s.log.Info().Msg("skipping db migrations; no migrations directory set")
 	} else if err := s.Migrate(u.String(), s.MigrationsDir); err != nil {
-		return fmt.Errorf("running postgres migrations: %w", err)
+		return fmt.Errorf("running Postgres migrations: %w", err)
 	}
 
 	return nil

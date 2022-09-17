@@ -22,10 +22,6 @@ func setupElasticsearchEnv(t *testing.T, es *esboot.Elasticsearch) (env *goboot.
 }
 
 func TestElasticsearch_Success(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &esboot.Elasticsearch{}
 	env := setupElasticsearchEnv(t, s)
 	assert.Nil(t, s.Configure(env))
@@ -35,10 +31,6 @@ func TestElasticsearch_Success(t *testing.T) {
 }
 
 func TestElasticsearch_SuccessEnvs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &esboot.Elasticsearch{}
 	_ = os.Setenv("ELASTICSEARCH_USERNAME", "elastic")
 	_ = os.Setenv("ELASTICSEARCH_PASSWORD", "secret")
@@ -55,11 +47,7 @@ func TestElasticsearch_ErrorNoAddresses(t *testing.T) {
 }
 
 func TestElasticsearch_ErrorOnConnect(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &esboot.Elasticsearch{}
 	err := s.Configure(goboot.NewAppEnv("./testdata", "invalid-password"))
-	assert.Contains(t, err.Error(), "expected 200 OK but got \"401 Unauthorized\" while retrieving elasticsearch info")
+	assert.Contains(t, err.Error(), "expected 200 OK but got \"401 Unauthorized\" while retrieving Elasticsearch info")
 }

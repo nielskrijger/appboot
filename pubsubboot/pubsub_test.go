@@ -29,10 +29,6 @@ var (
 func newPubSubEmulatorService(t *testing.T, deadLetter bool) *pubsubboot.PubSub {
 	t.Helper()
 
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	if _, exists := os.LookupEnv("PUBSUB_EMULATOR_HOST"); !exists {
 		_ = os.Setenv("PUBSUB_EMULATOR_HOST", "localhost:8085")
 	}
@@ -118,7 +114,7 @@ func TestPubSubReceiveAll_ContextClosed(t *testing.T) {
 	ctx := context.Background()
 	_, err := s.ReceiveNr(ctx, "test-channel", 1)
 
-	assert.Equal(t, pubsubboot.ErrPubSubClosed, err)
+	assert.Equal(t, "PubSub service has been closed", err.Error())
 }
 
 func TestPubSubPublishEvent_ChannelDoesNotExist(t *testing.T) {
@@ -149,7 +145,7 @@ func TestPubSubPublishEvent_ContextClosed(t *testing.T) {
 
 	err := s.PublishEvent(ctx, "test-channel", "ev1", "test message")
 
-	assert.Equal(t, pubsubboot.ErrPubSubClosed, err)
+	assert.Equal(t, "PubSub service has been closed", err.Error())
 }
 
 func TestPubSubReceive_Success(t *testing.T) {
@@ -202,7 +198,7 @@ func TestPubSubDeleteChannel_ServiceClosed(t *testing.T) {
 
 	err := s.DeleteChannel("test-channel")
 
-	assert.Equal(t, pubsubboot.ErrPubSubClosed, err)
+	assert.Equal(t, "PubSub service has been closed", err.Error())
 }
 
 func TestPubSubDeleteAll_ServiceClosed(t *testing.T) {
@@ -211,14 +207,14 @@ func TestPubSubDeleteAll_ServiceClosed(t *testing.T) {
 
 	err := s.DeleteAll()
 
-	assert.Equal(t, pubsubboot.ErrPubSubClosed, err)
+	assert.Equal(t, "PubSub service has been closed", err.Error())
 }
 
 func TestPubSubTryClose_LogErrorOnFailure(t *testing.T) {
 	s := newPubSubEmulatorService(t, false)
 	assert.Nil(t, s.Close())
 	assert.EqualError(t, s.Close(),
-		"closing pubsub service: pubsub publisher closing error: "+
+		"closing PubSub service: pubsub publisher closing error: "+
 			"rpc error: code = Canceled desc = grpc: the client connection is closing",
 	)
 }

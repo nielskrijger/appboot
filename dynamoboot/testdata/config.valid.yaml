@@ -1,0 +1,3 @@
+dynamodb:
+  region: eu-west-1
+  local: true

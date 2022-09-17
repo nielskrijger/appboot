@@ -15,12 +15,8 @@ import (
 )
 
 func TestElasticsearchMigrate_Success(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &esboot.Elasticsearch{
-		Migrations: []*esboot.ElasticsearchMigration{
+		Migrations: []*esboot.Migration{
 			{
 				ID: "1",
 				Migrate: func(es *esboot.Elasticsearch) error {
@@ -72,20 +68,15 @@ func TestElasticsearchMigrate_Success(t *testing.T) {
 }
 
 func TestElasticsearchMigrate_RunOnce(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	runCount := 0
 
 	s := &esboot.Elasticsearch{
-		Migrations: []*esboot.ElasticsearchMigration{
+		Migrations: []*esboot.Migration{
 			{
 				ID: "1",
 				Migrate: func(es *esboot.Elasticsearch) error {
 					runCount++
-
-					return es.IndexCreate(context.Background(), "test") //nolint:wrapcheck
+					return nil
 				},
 			},
 		},
@@ -95,17 +86,12 @@ func TestElasticsearchMigrate_RunOnce(t *testing.T) {
 	// Run migrations twice
 	assert.Nil(t, s.Init())
 	assert.Nil(t, s.Init())
-
 	assert.Equal(t, 1, runCount)
 }
 
 func TestElasticsearchMigrate_ErrorWhenOutOfOrder(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &esboot.Elasticsearch{
-		Migrations: []*esboot.ElasticsearchMigration{
+		Migrations: []*esboot.Migration{
 			{
 				ID: "2",
 				Migrate: func(es *esboot.Elasticsearch) error {
@@ -118,30 +104,28 @@ func TestElasticsearchMigrate_ErrorWhenOutOfOrder(t *testing.T) {
 
 	// Add one migration in ES migrations index with a different id
 	_ = s.InsertMigrationRecord("1", time.Millisecond)
+	err := s.Init()
 
 	assert.EqualError(
 		t,
-		s.Init(),
+		err,
 		`running Elasticsearch migrations: unexpected migration id "2", was expecting id "1" (you can only add new migrations at the end)`, //nolint:lll
 	)
 }
 
 func TestElasticsearchMigrate_ErrorMigrationMissing(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
 	s := &esboot.Elasticsearch{
-		Migrations: []*esboot.ElasticsearchMigration{},
+		Migrations: []*esboot.Migration{},
 	}
 	setupElasticsearchEnv(t, s)
 
 	// Add one migration in ES migrations index with a different id
 	_ = s.InsertMigrationRecord("1", time.Millisecond)
+	err := s.Init()
 
 	assert.EqualError(
 		t,
-		s.Init(),
+		err,
 		`running Elasticsearch migrations: missing migration "1"; you're not allowed to delete migrations that have already run`, //nolint:lll
 	)
 }

@@ -4,19 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nielskrijger/goboot"
 	"strconv"
 	"time"
 	"unicode/utf8"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/nielskrijger/goboot"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-var ErrPubSubClosed = errors.New("pubsub Service has been closed")
+var errPubSubClosed = errors.New("PubSub service has been closed")
 
 // defaultDeadLetterName is the name used to identity the dead letter channel
 // if no other name was defined.
@@ -46,7 +46,7 @@ type PubSub struct {
 	options   []Option
 }
 
-// PubSubRichMessage embeds the raw gcloud pubsub message with additional details
+// RichMessage embeds the raw gcloud pubsub message with additional details
 // and functions.
 //
 // The PubSubRichMessage primarily helps handling retryable and unrecoverable errors.
@@ -56,7 +56,7 @@ type RichMessage struct {
 	Channel *Channel
 }
 
-// PubSubChannel is a message channel containing a topic ID and optionally a subscription.
+// Channel is a message channel containing a topic ID and optionally a subscription.
 type Channel struct {
 	ID             string
 	TopicID        string
@@ -130,10 +130,10 @@ func NewPubSubService(projectID string, options ...Option) *PubSub {
 }
 
 func (s *PubSub) Name() string {
-	return "pubsub"
+	return "PubSub"
 }
 
-// Configure implements the context.AppService interface and instantiates
+// Configure implements the AppService interface and instantiates
 // the client connection to gcloud pubsub.
 func (s *PubSub) Configure(env *goboot.AppEnv) error {
 	s.log = env.Log
@@ -177,8 +177,7 @@ func (s *PubSub) CreateAll() error {
 	return nil
 }
 
-// Init implements the context.AppService interface and executes the MustCreateAll
-// method.
+// Init implements the AppService interface and executes the CreateAll method.
 func (s *PubSub) Init() error {
 	s.log.Info().Msg("ensuring all google pubsub topics & subscriptions exist")
 
@@ -358,7 +357,7 @@ func translateError(err error, wrapMsg string, args ...any) error {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Canceled {
-			return ErrPubSubClosed
+			return errPubSubClosed
 		}
 
 		return errors.Wrapf(err, wrapMsg, args...)

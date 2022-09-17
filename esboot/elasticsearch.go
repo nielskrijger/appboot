@@ -26,7 +26,7 @@ type ESClusterInfo struct {
 }
 
 type Elasticsearch struct {
-	Migrations      []*ElasticsearchMigration
+	Migrations      []*Migration
 	MigrationsIndex string
 
 	*elasticsearch7.Client
@@ -36,19 +36,19 @@ type Elasticsearch struct {
 }
 
 func (s *Elasticsearch) Name() string {
-	return "elasticsearch"
+	return "Elasticsearch"
 }
 
-func (s *Elasticsearch) Configure(ctx *goboot.AppEnv) error {
-	s.log = ctx.Log
+func (s *Elasticsearch) Configure(env *goboot.AppEnv) error {
+	s.log = env.Log
 
 	// Fetch config from viper. Avoid unmarshal directly into elasticsearch7.Config
 	// as it doesn't work with env vars:
 	// https://github.com/spf13/viper/issues/761
 	s.Config = &elasticsearch7.Config{
-		Addresses: ctx.Config.GetStringSlice("elasticsearch.addresses"),
-		Username:  ctx.Config.GetString("elasticsearch.username"),
-		Password:  ctx.Config.GetString("elasticsearch.password"),
+		Addresses: env.Config.GetStringSlice("elasticsearch.addresses"),
+		Username:  env.Config.GetString("elasticsearch.username"),
+		Password:  env.Config.GetString("elasticsearch.password"),
 	}
 
 	if len(s.Config.Addresses) == 0 {
@@ -56,16 +56,16 @@ func (s *Elasticsearch) Configure(ctx *goboot.AppEnv) error {
 	}
 
 	if s.MigrationsIndex == "" {
-		if ctx.Config.IsSet("elasticsearch.migrationsIndex") {
-			s.MigrationsIndex = ctx.Config.GetString("elasticsearch.migrationsIndex")
+		if env.Config.IsSet("elasticsearch.migrationsIndex") {
+			s.MigrationsIndex = env.Config.GetString("elasticsearch.migrationsIndex")
 		} else {
 			s.MigrationsIndex = defaultMigrationsIndex
 		}
 	}
 
 	// setup debug logging
-	if ctx.Log.Debug().Enabled() {
-		human := ctx.Config.Get("log.human")
+	if env.Log.Debug().Enabled() {
+		human := env.Config.Get("log.human")
 		if human == "true" {
 			s.Config.Logger = &estransport.ColorLogger{
 				Output:             os.Stdout,
@@ -84,29 +84,29 @@ func (s *Elasticsearch) Configure(ctx *goboot.AppEnv) error {
 	// Start client
 	client, err := elasticsearch7.NewClient(*s.Config)
 	if err != nil {
-		return fmt.Errorf("creating elasticsearch client: %w", err)
+		return fmt.Errorf("creating Elasticsearch client: %w", err)
 	}
 
 	s.Client = client
 
-	return s.testConnectivity(ctx)
+	return s.testConnectivity(env)
 }
 
-func (s *Elasticsearch) testConnectivity(ctx *goboot.AppEnv) error {
+func (s *Elasticsearch) testConnectivity(env *goboot.AppEnv) error {
 	res, err := s.Client.Info()
 	if err != nil {
-		return fmt.Errorf("fetch elasticsearch cluster info: %w", err)
+		return fmt.Errorf("fetch Elasticsearch cluster info: %w", err)
 	}
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			ctx.Log.Warn().Err(err).Msg("failed to properly close elasticsearch response body")
+			env.Log.Warn().Err(err).Msg("failed to properly close Elasticsearch response body")
 		}
 	}()
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf( // nolint:goerr113
-			"expected 200 OK but got %q while retrieving elasticsearch info: %s",
+			"expected 200 OK but got %q while retrieving Elasticsearch info: %s",
 			res.Status(),
 			res.Body,
 		)
@@ -117,7 +117,7 @@ func (s *Elasticsearch) testConnectivity(ctx *goboot.AppEnv) error {
 		return fmt.Errorf("decoding cluster info: %w", err)
 	}
 
-	ctx.Log.Info().Msgf("successfully connected to Elasticsearch cluster \"%s\"", info.ClusterName)
+	env.Log.Info().Msgf("successfully connected to Elasticsearch cluster \"%s\"", info.ClusterName)
 
 	return nil
 }
@@ -151,7 +151,7 @@ func (s *Elasticsearch) ParseResponse(res *esapi.Response, v any) (err error) {
 	if v != nil {
 		results := gjson.GetBytes(b, "hits.hits.#._source").Raw
 		if err := json.Unmarshal([]byte(results), &v); err != nil {
-			return fmt.Errorf("parsing ES response body: %w", err)
+			return fmt.Errorf("parsing Elasticsearch response body: %w", err)
 		}
 	}
 
@@ -173,12 +173,12 @@ func (s *Elasticsearch) ParseResponseBytes(res *esapi.Response) ([]byte, error) 
 
 	if res.IsError() {
 		// Print the response status and error information.
-		return nil, fmt.Errorf("elasticsearch error response: %s", res.String())
+		return nil, fmt.Errorf("Elasticsearch error response: %s", res.String())
 	}
 
 	result, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("reading ES response body: %w", err)
+		return nil, fmt.Errorf("reading Elasticsearch response body: %w", err)
 	}
 
 	return result, nil

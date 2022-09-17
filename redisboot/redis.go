@@ -3,10 +3,10 @@ package redisboot
 import (
 	"errors"
 	"fmt"
-	"github.com/nielskrijger/goboot"
 	"time"
 
 	"github.com/go-redis/redis"
+	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	errMissingConfig = errors.New("missing redis configuration")
+	errMissingConfig = errors.New("missing Redis configuration")
 	errMissingURL    = errors.New("config \"redis.url\" is required")
 )
 
@@ -52,22 +52,22 @@ type Redis struct {
 }
 
 func (s *Redis) Name() string {
-	return "redis"
+	return "Redis"
 }
 
-func (s *Redis) Configure(ctx *goboot.AppEnv) error {
-	s.log = ctx.Log
+func (s *Redis) Configure(env *goboot.AppEnv) error {
+	s.log = env.Log
 	redisCfg := &RedisConfig{}
 
-	if !ctx.Config.InConfig("redis") {
+	if !env.Config.InConfig("redis") {
 		return errMissingConfig
 	}
 
-	if !ctx.Config.IsSet("redis.url") {
+	if !env.Config.IsSet("redis.url") {
 		return errMissingURL
 	}
 
-	if err := ctx.Config.Sub("redis").Unmarshal(redisCfg); err != nil {
+	if err := env.Config.Sub("redis").Unmarshal(redisCfg); err != nil {
 		return fmt.Errorf("parsing redis configuration: %w", err)
 	}
 
@@ -127,7 +127,7 @@ func (s *Redis) testConnectivity(cfg *RedisConfig) error {
 	return nil
 }
 
-// Init implements AppService interface.
+// Init implements the AppService interface.
 func (s *Redis) Init() error {
 	return nil
 }

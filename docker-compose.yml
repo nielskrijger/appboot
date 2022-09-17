@@ -42,6 +42,11 @@ services:
     command: >
       --requirepass secret
 
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8000:8000"
+
 volumes:
   pgdata:
   esdata:
