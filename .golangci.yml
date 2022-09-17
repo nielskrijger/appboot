@@ -16,6 +16,10 @@ linters:
     - golint
     - interfacer
     - ifshort
+    - structcheck
+    - nosnakecase
+    - varcheck
+    - deadcode
 linters-settings:
   exhaustive:
     default-signifies-exhaustive: true # enable "default"-case in switch as catch-all for all other options

@@ -47,7 +47,7 @@ func (s *Elasticsearch) Migrate(ctx context.Context) error {
 		return nil
 	}
 
-	return s.runMigrations(newMigrations)
+	return s.runMigrations(ctx, newMigrations)
 }
 
 // getNewMigrations retrieves the migration history and returns all migrations
@@ -88,7 +88,7 @@ func (s *Elasticsearch) getNewMigrations(ctx context.Context) ([]*Migration, err
 	return newMigrations, nil
 }
 
-func (s *Elasticsearch) runMigrations(migrations []*Migration) error {
+func (s *Elasticsearch) runMigrations(ctx context.Context, migrations []*Migration) error {
 	for _, migration := range migrations {
 		start := time.Now()
 
@@ -97,7 +97,7 @@ func (s *Elasticsearch) runMigrations(migrations []*Migration) error {
 		}
 
 		elapsed := time.Since(start)
-		if err := s.InsertMigrationRecord(migration.ID, elapsed); err != nil {
+		if err := s.InsertMigrationRecord(ctx, migration.ID, elapsed); err != nil {
 			return err
 		}
 	}
@@ -105,7 +105,7 @@ func (s *Elasticsearch) runMigrations(migrations []*Migration) error {
 	return nil
 }
 
-func (s *Elasticsearch) InsertMigrationRecord(id string, elapsed time.Duration) error {
+func (s *Elasticsearch) InsertMigrationRecord(ctx context.Context, id string, elapsed time.Duration) error {
 	newRecord, err := json.Marshal(MigrationRecord{
 		ID:        id,
 		Timestamp: time.Now().UTC(),
@@ -122,7 +122,7 @@ func (s *Elasticsearch) InsertMigrationRecord(id string, elapsed time.Duration) 
 		Refresh:    "true",
 	}
 
-	if _, err = req.Do(context.Background(), s.Client); err != nil {
+	if _, err = req.Do(ctx, s.Client); err != nil {
 		return fmt.Errorf("insert ES migration record: %w", err)
 	}
 

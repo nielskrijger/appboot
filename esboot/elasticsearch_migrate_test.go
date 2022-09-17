@@ -104,7 +104,7 @@ func TestElasticsearchMigrate_ErrorWhenOutOfOrder(t *testing.T) {
 	setupElasticsearchEnv(t, s)
 
 	// Add one migration in ES migrations index with a different id
-	_ = s.InsertMigrationRecord("1", time.Millisecond)
+	_ = s.InsertMigrationRecord(context.Background(), "1", time.Millisecond)
 	err := s.Init()
 
 	assert.EqualError(
@@ -121,7 +121,7 @@ func TestElasticsearchMigrate_ErrorMigrationMissing(t *testing.T) {
 	setupElasticsearchEnv(t, s)
 
 	// Add one migration in ES migrations index with a different id
-	_ = s.InsertMigrationRecord("1", time.Millisecond)
+	_ = s.InsertMigrationRecord(context.Background(), "1", time.Millisecond)
 	err := s.Init()
 
 	assert.EqualError(

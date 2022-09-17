@@ -126,7 +126,7 @@ func (db *DynamoDB) createClient(ctx context.Context) (*dynamodb.Client, error) 
 		return nil, fmt.Errorf("creating DynamoDB client: %w", err)
 	}
 
-	return dynamodb.NewFromConfig(cfg), nil
+	return dynamodb.NewFromConfig(cfg), nil //nolint:contextcheck
 }
 
 // createLocalClient connects to a local dynamodb emulator on port 8000.
@@ -150,7 +150,7 @@ func (db *DynamoDB) createLocalClient(ctx context.Context) (*dynamodb.Client, er
 		return nil, fmt.Errorf("creating local DynamoDB client: %w", err)
 	}
 
-	return dynamodb.NewFromConfig(cfg), nil
+	return dynamodb.NewFromConfig(cfg), nil //nolint:contextcheck
 }
 
 func (db *DynamoDB) testConnectivity(ctx context.Context) error {
