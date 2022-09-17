@@ -2,13 +2,20 @@ linters:
   enable-all: true
   disable:
     - gochecknoglobals # usually just false positives
-    - maligned # deprecated
-    - scopelint # deprecated
-    - paralleltest # lots of code, little gain; prefer using t.Parallel() only for slow tests
-    - exhaustivestruct # just a pain, not too useful
+    - paralleltest # unreliable with integration tests
+    - exhaustruct # too many exceptions
+    - exhaustivestruct # too many exceptions
     - tagliatelle # restricts json/yaml formatting, not applicable in this app
     - goconst # finds repeated strings >= 3 times; but usually that's OK
     - goerr113 # all false positives
+    - varnamelen
+
+    # The following are deprecated
+    - maligned
+    - scopelint
+    - golint
+    - interfacer
+    - ifshort
 linters-settings:
   exhaustive:
     default-signifies-exhaustive: true # enable "default"-case in switch as catch-all for all other options

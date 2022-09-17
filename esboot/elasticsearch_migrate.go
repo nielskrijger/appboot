@@ -56,11 +56,13 @@ func (s *Elasticsearch) Migrate(ctx context.Context) error {
 // - The migration history has an unknown migration ID.
 // - One of the new migrations has not been added to the back.
 // - The migrations are ordered differently than the migration history.
-func (s *Elasticsearch) getNewMigrations(ctx context.Context) (newMigrations []*Migration, err error) {
+func (s *Elasticsearch) getNewMigrations(ctx context.Context) ([]*Migration, error) {
 	var records []MigrationRecord
-	if err = s.getMigrations(ctx, &records); err != nil {
+	if err := s.getMigrations(ctx, &records); err != nil {
 		return nil, err
 	}
+
+	var newMigrations []*Migration
 
 	for i, migration := range s.Migrations {
 		if i < len(records) {
@@ -186,7 +188,7 @@ func (s *Elasticsearch) IndexDelete(ctx context.Context, idx string) error {
 }
 
 // getMigrations retrieves all migrations that have run.
-func (s *Elasticsearch) getMigrations(ctx context.Context, r any) (err error) {
+func (s *Elasticsearch) getMigrations(ctx context.Context, r any) error {
 	req := esapi.SearchRequest{
 		Index: []string{s.MigrationsIndex},
 	}

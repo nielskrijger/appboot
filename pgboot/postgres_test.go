@@ -1,10 +1,10 @@
 package pgboot_test
 
 import (
-	"github.com/nielskrijger/goboot/pgboot"
 	"testing"
 
 	"github.com/nielskrijger/goboot"
+	"github.com/nielskrijger/goboot/pgboot"
 	"github.com/stretchr/testify/assert"
 )
 

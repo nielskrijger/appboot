@@ -1,10 +1,10 @@
 package redisboot_test
 
 import (
-	"github.com/nielskrijger/goboot/redisboot"
 	"testing"
 
 	"github.com/nielskrijger/goboot"
+	"github.com/nielskrijger/goboot/redisboot"
 	"github.com/stretchr/testify/assert"
 )
 

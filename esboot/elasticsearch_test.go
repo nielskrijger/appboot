@@ -2,18 +2,17 @@ package esboot_test
 
 import (
 	"context"
-	"github.com/nielskrijger/goboot/esboot"
-	"os"
 	"testing"
 
 	"github.com/nielskrijger/goboot"
+	"github.com/nielskrijger/goboot/esboot"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupElasticsearchEnv(t *testing.T, es *esboot.Elasticsearch) (env *goboot.AppEnv) {
+func setupElasticsearchEnv(t *testing.T, es *esboot.Elasticsearch) *goboot.AppEnv {
 	t.Helper()
 
-	env = goboot.NewAppEnv("./testdata", "valid")
+	env := goboot.NewAppEnv("./testdata", "valid")
 	assert.Nil(t, es.Configure(env))
 	_ = es.IndexDelete(context.Background(), "test")
 	_ = es.IndexDelete(context.Background(), es.MigrationsIndex)
@@ -32,12 +31,12 @@ func TestElasticsearch_Success(t *testing.T) {
 
 func TestElasticsearch_SuccessEnvs(t *testing.T) {
 	s := &esboot.Elasticsearch{}
-	_ = os.Setenv("ELASTICSEARCH_USERNAME", "elastic")
-	_ = os.Setenv("ELASTICSEARCH_PASSWORD", "secret")
+
+	t.Setenv("ELASTICSEARCH_USERNAME", "elastic")
+	t.Setenv("ELASTICSEARCH_PASSWORD", "secret")
 
 	err := s.Configure(goboot.NewAppEnv("./testdata", "using-env-vars"))
 	assert.Nil(t, err)
-	os.Clearenv()
 }
 
 func TestElasticsearch_ErrorNoAddresses(t *testing.T) {

@@ -105,7 +105,7 @@ func (s *Elasticsearch) testConnectivity(env *goboot.AppEnv) error {
 	}()
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf( // nolint:goerr113
+		return fmt.Errorf(
 			"expected 200 OK but got %q while retrieving Elasticsearch info: %s",
 			res.Status(),
 			res.Body,
@@ -142,7 +142,7 @@ func (s *Elasticsearch) Close() error {
 // If r is nil does not decode non-error response body.
 //
 // Closes the response body when done.
-func (s *Elasticsearch) ParseResponse(res *esapi.Response, v any) (err error) {
+func (s *Elasticsearch) ParseResponse(res *esapi.Response, v any) error {
 	b, err := s.ParseResponseBytes(res)
 	if err != nil {
 		return err

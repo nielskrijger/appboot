@@ -27,8 +27,7 @@ func (db *DynamoDB) Migrate(ctx context.Context) error {
 		return err
 	}
 
-	_, err := db.getMigrations(ctx)
-	if err != nil {
+	if _, err := db.getMigrations(ctx); err != nil {
 		return err
 	}
 
@@ -79,11 +78,13 @@ func (db *DynamoDB) createMigrationsTableInput() *dynamodb.CreateTableInput {
 // - The migration history has an unknown migration ID.
 // - One of the new migrations has not been added to the back.
 // - The migrations are ordered differently than the migration history.
-func (db *DynamoDB) getNewMigrations(ctx context.Context) (newMigrations []*Migration, err error) {
+func (db *DynamoDB) getNewMigrations(ctx context.Context) ([]*Migration, error) {
 	records, err := db.getMigrations(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	var newMigrations []*Migration
 
 	for i, migration := range db.Migrations {
 		if i < len(records) {
@@ -116,16 +117,18 @@ func (db *DynamoDB) getMigrations(ctx context.Context) ([]MigrationRecord, error
 	})
 
 	var items []MigrationRecord
+
 	for p.HasMorePages() {
 		out, err := p.NextPage(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("fetch DynamoDB page: %w", err)
 		}
 
 		var pItems []MigrationRecord
+
 		err = attributevalue.UnmarshalListOfMaps(out.Items, &pItems)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshal DynamoDB items: %w", err)
 		}
 
 		items = append(items, pItems...)
@@ -168,7 +171,7 @@ func (db *DynamoDB) insertMigrationRecord(ctx context.Context, id string, elapse
 		Item:      av,
 	})
 	if err != nil {
-		return fmt.Errorf("insert DynamoDB migration record: %v", err)
+		return fmt.Errorf("insert DynamoDB migration record: %w", err)
 	}
 
 	return nil

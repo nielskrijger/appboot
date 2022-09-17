@@ -6,15 +6,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/golang-migrate/migrate/v4" //nolint
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // Load file-loader for migration files.
+	_ "github.com/lib/pq"                                // Required dependency for postgres driver.
 	"github.com/rs/zerolog"
-
-	// Load file-loader for migration files.
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-
-	// Required dependency for postgres driver.
-	_ "github.com/lib/pq"
 )
 
 type PostgresMigratePrinter interface {

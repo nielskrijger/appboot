@@ -76,6 +76,7 @@ func TestElasticsearchMigrate_RunOnce(t *testing.T) {
 				ID: "1",
 				Migrate: func(es *esboot.Elasticsearch) error {
 					runCount++
+
 					return nil
 				},
 			},

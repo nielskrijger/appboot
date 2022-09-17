@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupDynamoDBEnv(t *testing.T, db *dynamoboot.DynamoDB) (env *goboot.AppEnv) {
+func setupDynamoDBEnv(t *testing.T, db *dynamoboot.DynamoDB) *goboot.AppEnv {
 	t.Helper()
 
-	env = goboot.NewAppEnv("./testdata", "valid")
+	env := goboot.NewAppEnv("./testdata", "valid")
 	assert.Nil(t, db.Configure(env))
 
 	_, _ = db.Client.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{
@@ -29,6 +29,7 @@ func setupDynamoDBEnv(t *testing.T, db *dynamoboot.DynamoDB) (env *goboot.AppEnv
 
 func TestDynamoDB_Success(t *testing.T) {
 	s := &dynamoboot.DynamoDB{}
+
 	env := setupDynamoDBEnv(t, s)
 	defer func() { env.Close() }()
 

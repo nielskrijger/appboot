@@ -1,7 +1,6 @@
 package goboot_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/nielskrijger/goboot"
@@ -50,8 +49,9 @@ type TestConfig struct {
 }
 
 func TestConfig_OverrideEnvVariables(t *testing.T) {
-	_ = os.Setenv("VARS_FILENAME", "from-env")
-	_ = os.Setenv("VARS_PROD_ONLY_VAR", "from-env")
+	t.Setenv("VARS_FILENAME", "from-env")
+	t.Setenv("VARS_PROD_ONLY_VAR", "from-env")
+
 	cfg, err := goboot.LoadConfig(zerolog.Nop(), "./testdata", "prod")
 	assert.Nil(t, err)
 	assert.Equal(t, "from-env", cfg.GetString("vars.filename"))
@@ -63,6 +63,4 @@ func TestConfig_OverrideEnvVariables(t *testing.T) {
 	err = cfg.Sub("vars").Unmarshal(cfgStruct)
 	assert.Nil(t, err)
 	assert.Equal(t, "from-env", cfgStruct.Filename)
-
-	os.Clearenv()
 }

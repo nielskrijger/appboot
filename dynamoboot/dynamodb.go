@@ -21,6 +21,11 @@ var (
 	errMissingRegion = errors.New("config \"dynamodb.region\" is required")
 )
 
+const (
+	tableWaitTimeout  = 2 * time.Minute
+	tableWaitInterval = 5 * time.Second
+)
+
 type DynamodbConfig struct {
 	// The AWS region to connection to
 	Region string `yaml:"region"`
@@ -118,7 +123,7 @@ func (db *DynamoDB) createClient(ctx context.Context) (*dynamodb.Client, error) 
 		config.WithRegion(db.Config.Region),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating DynamoDB client: %w", err)
 	}
 
 	return dynamodb.NewFromConfig(cfg), nil
@@ -142,7 +147,7 @@ func (db *DynamoDB) createLocalClient(ctx context.Context) (*dynamodb.Client, er
 		}),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating local DynamoDB client: %w", err)
 	}
 
 	return dynamodb.NewFromConfig(cfg), nil
@@ -155,6 +160,7 @@ func (db *DynamoDB) testConnectivity(ctx context.Context) error {
 	}
 
 	db.log.Info().Msg("successfully connected to DynamoDB")
+
 	return nil
 }
 
@@ -197,6 +203,7 @@ func (db *DynamoDB) CreateTableIfNotExists(ctx context.Context, tableInput *dyna
 
 	if exists {
 		db.log.Info().Msgf("table %q already exists, nothing to do here", *tableInput.TableName)
+
 		return nil
 	}
 
@@ -206,14 +213,15 @@ func (db *DynamoDB) CreateTableIfNotExists(ctx context.Context, tableInput *dyna
 // waitForTable blocks until a DynamoDB table is ready for reading/writing.
 func (db *DynamoDB) waitForTable(ctx context.Context, tableName string) error {
 	w := dynamodb.NewTableExistsWaiter(db.Client)
+
 	err := w.Wait(ctx,
 		&dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
 		},
-		2*time.Minute,
+		tableWaitTimeout,
 		func(o *dynamodb.TableExistsWaiterOptions) {
-			o.MaxDelay = 5 * time.Second
-			o.MinDelay = 5 * time.Second
+			o.MaxDelay = tableWaitInterval
+			o.MinDelay = tableWaitInterval
 		})
 	if err != nil {
 		return fmt.Errorf("timed out while waiting for table to become active: %w", err)

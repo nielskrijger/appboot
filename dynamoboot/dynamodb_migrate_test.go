@@ -24,7 +24,7 @@ var testMigrations = []*dynamoboot.Migration{
 	{
 		ID: "1",
 		Migrate: func(db *dynamoboot.DynamoDB) error {
-			return db.CreateTable(context.Background(), &dynamodb.CreateTableInput{
+			return db.CreateTable(context.Background(), &dynamodb.CreateTableInput{ //nolint:wrapcheck
 				TableName: testTable,
 				AttributeDefinitions: []types.AttributeDefinition{
 					{
@@ -53,7 +53,7 @@ var testMigrations = []*dynamoboot.Migration{
 				},
 			})
 
-			return err
+			return err //nolint:wrapcheck
 		},
 	},
 }
@@ -75,7 +75,9 @@ func TestDynamoDB_Migrate_Success(t *testing.T) {
 	assert.Nil(t, err)
 
 	var item *TestItem
-	assert.Nil(t, attributevalue.UnmarshalMap(res.Item, &item))
+	err = attributevalue.UnmarshalMap(res.Item, &item)
+
+	assert.Nil(t, err)
 	assert.Equal(t, item.ID, "1234")
 	assert.Equal(t, item.Name, "John Doe")
 }
@@ -94,7 +96,9 @@ func TestDynamoDB_Migrate_InsertMigrationRecord(t *testing.T) {
 	assert.Nil(t, err)
 
 	var items []*dynamoboot.MigrationRecord
-	assert.Nil(t, attributevalue.UnmarshalListOfMaps(res.Items, &items))
+	err = attributevalue.UnmarshalListOfMaps(res.Items, &items)
+
+	assert.Nil(t, err)
 	assert.Equal(t, items[0].ID, "1")
 	_, err = time.Parse("2006-01-02T15:04:05Z", items[0].Timestamp)
 	assert.Nil(t, err)
@@ -110,6 +114,7 @@ func TestDynamoDBMigrate_RunOnce(t *testing.T) {
 				ID: "1",
 				Migrate: func(db *dynamoboot.DynamoDB) error {
 					runCount++
+
 					return nil
 				},
 			},
