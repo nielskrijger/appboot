@@ -24,7 +24,7 @@ func TestPostgresMigrate_Success(t *testing.T) {
 	assert.Nil(t, s.Init())
 
 	var records []Record
-	_, err := s.DB.Query(&records, "SELECT * FROM test_table")
+	err := s.DB.Select(&records, "SELECT * FROM test_table")
 	assert.Nil(t, err)
 	assert.Len(t, records, 2)
 	assert.Equal(t, "First record", records[0].Name)

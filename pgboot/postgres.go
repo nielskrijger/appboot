@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strconv"
 	"time"
 
-	"github.com/go-pg/pg"
+	"github.com/jmoiron/sqlx"
 	"github.com/nielskrijger/goboot"
 	"github.com/rs/zerolog"
 )
@@ -26,9 +25,6 @@ type PostgresConfig struct {
 	// DSN contains hostname:port, e.g. localhost:6379
 	DSN string `yaml:"dsn"`
 
-	// Number of seconds before first connect attempt times out.
-	ConnectTimeout int `yaml:"connectTimeout"`
-
 	// Number of retries upon initial connect. Default is 5 times. Set -1 to disable
 	ConnectMaxRetries int `yaml:"connectMaxRetries"`
 
@@ -40,30 +36,11 @@ type PostgresConfig struct {
 type Postgres struct {
 	MigrationsDir string // relative path to migrations directory, leave empty when no migrations
 
-	DB *pg.DB
+	DB *sqlx.DB
 
 	config  *PostgresConfig
 	log     zerolog.Logger
 	confDir string
-}
-
-type dbLogger struct {
-	log zerolog.Logger
-}
-
-func (d *dbLogger) BeforeQuery(q *pg.QueryEvent) {}
-
-func (d *dbLogger) AfterQuery(q *pg.QueryEvent) {
-	str, err := q.FormattedQuery()
-	if err != nil {
-		d.log.Error().Err(err).Msg("error retrieving query")
-	} else {
-		d.log.Debug().Msg(str)
-	}
-}
-
-type healtcheckResult struct {
-	Result int
 }
 
 func (s *Postgres) Name() string {
@@ -98,17 +75,24 @@ func (s *Postgres) Configure(env *goboot.AppEnv) error {
 		s.config.ConnectRetryDuration = defaultPostgresConnectRetryDuration
 	}
 
-	// check if we can connect to PostgreSQL
-	if err := s.testConnectivity(); err != nil {
+	// Setup DB connection pool
+	if err := s.connect(); err != nil {
 		return err
 	}
 
-	// print SQL queries when debug logging is on
-	if env.Log.Debug().Enabled() {
-		s.DB.AddQueryHook(&dbLogger{log: s.log})
+	return nil
+}
+
+func (s *Postgres) connect() error {
+	db, err := sqlx.Open("postgres", s.config.DSN)
+	if err != nil {
+		return fmt.Errorf("connection to postgres: %w", err)
 	}
 
-	return nil
+	s.DB = db
+
+	// Check if we can connect to PostgreSQL
+	return s.testConnectivity()
 }
 
 func (s *Postgres) testConnectivity() error {
@@ -121,19 +105,9 @@ func (s *Postgres) testConnectivity() error {
 	logURL.User = url.UserPassword(logURL.User.Username(), "REDACTED")
 	s.log.Info().Msgf("connecting to %s", logURL.String())
 
-	// parse
-	pgOptions, err := pg.ParseURL(s.config.DSN)
-	if err != nil {
-		return fmt.Errorf("could not parse Postgres DSN: %w", err)
-	}
-
-	pgOptions.DialTimeout = time.Duration(s.config.ConnectTimeout) * time.Second
-
 	for retries := 1; ; retries++ {
-		s.DB = pg.Connect(pgOptions)
-
 		// test connection
-		if _, err := s.DB.Query(&healtcheckResult{}, "SELECT 1 AS result"); err != nil {
+		if err := s.DB.Ping(); err != nil {
 			if retries < s.config.ConnectMaxRetries {
 				s.log.
 					Warn().
@@ -165,10 +139,6 @@ func (s *Postgres) Init() error {
 	if err != nil {
 		return fmt.Errorf("invalid postgres dsn: %w", err)
 	}
-
-	q := u.Query()
-	q.Set("connect_timeout", strconv.Itoa(s.config.ConnectTimeout))
-	u.RawQuery = q.Encode()
 
 	if s.MigrationsDir == "" {
 		s.log.Info().Msg("skipping db migrations; no migrations directory set")
