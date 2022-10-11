@@ -31,8 +31,7 @@ func TestPostgres_ErrorOnConnect(t *testing.T) {
 	s := &pgboot.Postgres{}
 	err := s.Configure(goboot.NewAppEnv("./testdata", "invalid-dsn"))
 	assert.EqualError(t, err,
-		"failed to connect to Postgres "+
-			"\"postgres://postgres:REDACTED@1.2.3.4:5431/utils?sslmode=disable&connect_timeout=1\" "+
-			"after 5 retries: dial tcp 1.2.3.4:5431: i/o timeout",
+		"connecting to Postgres: failed to connect to `host=1.2.3.4 user=postgres database=goboot`: "+
+			"dial error (dial tcp 1.2.3.4:5431: i/o timeout)",
 	)
 }

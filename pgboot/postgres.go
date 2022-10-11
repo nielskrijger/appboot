@@ -116,12 +116,7 @@ func (s *Postgres) testConnectivity() error {
 					Str("url", logURL.String()).
 					Msgf("failed to connect to Postgres, retrying in %s", s.config.ConnectRetryDuration)
 			} else {
-				return fmt.Errorf(
-					"failed to connect to Postgres %q after %d retries: %w",
-					logURL.String(),
-					s.config.ConnectMaxRetries,
-					err,
-				)
+				return fmt.Errorf("connecting to Postgres: %v", err)
 			}
 
 			time.Sleep(s.config.ConnectRetryDuration)
