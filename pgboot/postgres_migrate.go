@@ -7,9 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/database/pgx"
 	_ "github.com/golang-migrate/migrate/v4/source/file" // Load file-loader for migration files.
-	_ "github.com/lib/pq"                                // Required dependency for postgres driver.
 	"github.com/rs/zerolog"
 )
 
@@ -46,7 +45,7 @@ func (s *Postgres) Migrate(dsn string, migrations string) error {
 	log.Printf("running Postgres migrations from %s", dir)
 
 	// connect to postgres
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return fmt.Errorf("connecting to postgres: %w", err)
 	}
@@ -58,7 +57,7 @@ func (s *Postgres) Migrate(dsn string, migrations string) error {
 		}
 	}()
 
-	p := &postgres.Postgres{}
+	p := &pgx.Postgres{}
 
 	driver, err := p.Open(dsn)
 	if err != nil {

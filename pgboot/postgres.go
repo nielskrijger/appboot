@@ -22,7 +22,8 @@ var (
 )
 
 type PostgresConfig struct {
-	// DSN contains hostname:port, e.g. localhost:6379
+	// DSN contains the PGX data source name, e.;g. postgres://user:password@host:port/dbname?query
+	// see also https://github.com/golang-migrate/migrate/tree/master/database/pgx
 	DSN string `yaml:"dsn"`
 
 	// Number of retries upon initial connect. Default is 5 times. Set -1 to disable
@@ -84,7 +85,7 @@ func (s *Postgres) Configure(env *goboot.AppEnv) error {
 }
 
 func (s *Postgres) connect() error {
-	db, err := sqlx.Open("postgres", s.config.DSN)
+	db, err := sqlx.Open("pgx", s.config.DSN)
 	if err != nil {
 		return fmt.Errorf("connection to postgres: %w", err)
 	}
